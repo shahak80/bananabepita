@@ -177,6 +177,38 @@ input[type=range]{inline-size:100%;margin-block-start:var(--space-3);accent-colo
 .tried--none{color:var(--gray-500)}
 .tried b{font-family:"Rubik",sans-serif;font-weight:900;color:var(--green-700);font-size:var(--text-md)}
 
+/* ============ S04 · המתכונים שלי ============
+   אין כאן נתון חדש. המונה bp-tried-<id> כבר נשמר בכל לחיצה על
+   "יצא לי טוב!" — המסך הזה רק מציג אותו. לכן הוא לא מוסיף החלטה
+   למשתמש: הוא מראה לו מה שכבר החליט. */
+.mine-link{display:flex;justify-content:center;margin-block-start:var(--space-4)}
+.mine-link button{background:none;border:none;cursor:pointer;font-family:inherit;
+  font-size:var(--text-sm);color:var(--green-700);font-weight:700;
+  display:inline-flex;align-items:center;gap:var(--space-2);
+  padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);
+  transition:background .18s}
+.mine-link button:hover{background:rgba(42,110,71,.07)}
+.mine-link .n{background:var(--green-700);color:#fff;border-radius:999px;
+  min-inline-size:20px;padding:0 6px;font-size:12px;line-height:20px;text-align:center;
+  font-family:"Rubik",sans-serif;font-weight:900}
+
+.mylist{display:grid;gap:var(--space-3)}
+.myrow{display:flex;align-items:center;gap:var(--space-4);inline-size:100%;
+  background:var(--surface-raised);border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);padding:var(--space-3);cursor:pointer;
+  text-align:start;font-family:inherit;
+  transition:border-color .18s,transform .18s}
+.myrow:hover{border-color:var(--green-400);transform:translateY(-2px)}
+.myrow img{inline-size:64px;block-size:64px;object-fit:cover;flex:none;
+  border-radius:var(--radius-md);background:var(--color-border)}
+.myrow .t{flex:1;min-inline-size:0}
+.myrow .h{display:block;font-weight:800;font-size:var(--text-md);margin-block-end:2px}
+.myrow .m{display:block;font-size:var(--text-sm);color:var(--color-text-muted)}
+.myrow .c{flex:none;text-align:center;padding-inline:var(--space-2)}
+.myrow .c b{display:block;font-family:"Rubik",sans-serif;font-weight:900;
+  font-size:var(--text-lg);color:var(--green-700);line-height:1}
+.myrow .c span{font-size:11px;color:var(--color-text-muted)}
+
 .actions{display:flex;justify-content:center;gap:var(--space-8);margin-block-start:var(--space-6)}
 .act{inline-size:var(--action-btn-mobile);block-size:var(--action-btn-mobile);
   border-radius:var(--radius-circle);display:grid;place-items:center;font-size:28px;
@@ -417,10 +449,6 @@ input[type=range]{inline-size:100%;margin-block-start:var(--space-3);accent-colo
   .scr,.scr.is-back,.hdr-swap{animation:none}
 }
 </style>
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1A3D2A">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 
@@ -511,6 +539,10 @@ input[type=range]{inline-size:100%;margin-block-start:var(--space-3);accent-colo
         fill: #895016;
       }
     </style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1A3D2A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icon-192.png">
     <linearGradient id="linear-gradient" x1="434.94" y1="300.12" x2="435.29" y2="428.27" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#d2a974"/>
       <stop offset="1" stop-color="#8e6129"/>
@@ -687,6 +719,12 @@ input[type=range]{inline-size:100%;margin-block-start:var(--space-3);accent-colo
       <div class="go">
         <button class="btn-primary" id="find" disabled>מצא לי מתכון</button>
       </div>
+
+      <div class="mine-link">
+        <button type="button" id="open-mine">
+          המתכונים שלי <span class="n" id="mine-n" hidden>0</span>
+        </button>
+      </div>
     </section>
 
     <!-- ============ S02 ============ -->
@@ -697,6 +735,11 @@ input[type=range]{inline-size:100%;margin-block-start:var(--space-3);accent-colo
     <!-- ============ S03 ============ -->
     <section id="s03" hidden>
       <div id="recipe"></div>
+    </section>
+
+    <!-- ============ S04 ============ -->
+    <section id="s04" hidden>
+      <div id="my-recipes"></div>
     </section>
 
   </main>
@@ -875,12 +918,17 @@ function search(){
   renderResult();
 }
 
-var SCREENS = ["s01","s02","s03"];
+var SCREENS = ["s01","s02","s03","s04"];
 var lastScreen = "s01";
+/* מאיפה נפתח המתכון — קובע לאן חוזרים ממנו */
+var recipeFrom = "s02";
 
-function go(which){
-  /* כיוון התנועה נגזר מהמיקום ברצף, לא מנחושׁ. */
-  var back = SCREENS.indexOf(which) < SCREENS.indexOf(lastScreen);
+function go(which, dir){
+  /* כיוון התנועה נגזר מהמיקום ברצף, לא מנחושׁ.
+     dir גובר עליו כשהרצף לא מייצג את הכיוון — למשל s04 ← s03. */
+  var back = (dir === undefined)
+    ? SCREENS.indexOf(which) < SCREENS.indexOf(lastScreen)
+    : !!dir;
   lastScreen = which;
 
   SCREENS.forEach(function(s){ $(s).hidden = (s !== which); });
@@ -911,16 +959,100 @@ function go(which){
     ctx.appendChild(b);
     head.textContent = queue.length ? "מצאנו לך משהו" : "לא מצאנו משהו";
     sub.hidden = true;
+  } else if (which === "s04") {
+    ctx.innerHTML = "";
+    var b4 = document.createElement("button");
+    b4.type = "button"; b4.className = "back";
+    b4.innerHTML = "→ חזרה";
+    b4.onclick = function(){ go("s01", true); };
+    ctx.appendChild(b4);
+    head.textContent = "המתכונים שלי";
+    sub.textContent = "מה שכבר יצא לך טוב.";
+    sub.hidden = false;
   } else {
     ctx.innerHTML = "";
+    var fromMine = (recipeFrom === "s04");
     var back = document.createElement("button");
     back.type = "button"; back.className = "back";
-    back.innerHTML = "→ חזרה לתוצאות";
-    back.onclick = function(){ go("s02"); renderResult(); };
+    back.innerHTML = fromMine ? "→ חזרה למתכונים שלי" : "→ חזרה לתוצאות";
+    back.onclick = fromMine
+      ? function(){ go("s04", true); renderMyRecipes(); }
+      : function(){ go("s02", true); renderResult(); };
     ctx.appendChild(back);
     head.textContent = current ? current.r.title : "";
     sub.hidden = true;
   }
+}
+
+/* =========================================================
+   S04 · המתכונים שלי
+   מקור הנתון: אותו מונה שנשמר ב"יצא לי טוב!". לא רשימת
+   "שמור לאחר כך" — רשימה של מה שבאמת בושל. ההבדל חשוב:
+   רשימת שמורים היא עוד מטלה, רשימת בושלו היא תיעוד.
+   ========================================================= */
+function mineCount(){
+  var c = 0;
+  RECIPES.forEach(function(r){ if (getTried(r.id) > 0) c++; });
+  return c;
+}
+function paintMineCount(){
+  var el = $("mine-n");
+  if (!el) return;
+  var c = mineCount();
+  el.textContent = c;
+  el.hidden = (c === 0);
+}
+
+function renderMyRecipes(){
+  var box = $("my-recipes");
+  if (!box) return;
+  var pan = pantry.map(norm);
+
+  var rows = [];
+  RECIPES.forEach(function(r){
+    var n = getTried(r.id);
+    if (n > 0) rows.push({ r: r, n: n });
+  });
+  rows.sort(function(a,b){ return b.n - a.n; });
+
+  if (!rows.length) {
+    box.innerHTML =
+      '<div class="empty">' +
+        '<h2>עוד לא בישלת כלום</h2>' +
+        '<p>כל פעם שתלחץ "יצא לי טוב!" בסוף מתכון, הוא יופיע כאן. ' +
+        'זו רשימה של מה שכבר עבד לך — לא של מה ששמרת לפעם הבאה.</p>' +
+        '<button class="btn-primary" type="button" id="mine-back">מצא לי מתכון</button>' +
+      '</div>';
+    $("mine-back").onclick = function(){ go("s01", true); };
+    return;
+  }
+
+  box.innerHTML = '<div class="mylist">' + rows.map(function(row){
+    var r = row.r;
+    return '<button class="myrow" type="button" data-id="' + r.id + '" ' +
+             'aria-label="פתח את המתכון ' + r.title + '">' +
+      '<img src="assets/recipes/' + r.id + '.jpg" alt="" ' +
+           'onerror="this.style.visibility=\'hidden\'">' +
+      '<span class="t">' +
+        '<span class="h">' + r.title + '</span>' +
+        '<span class="m">' + r.prepTimeMinutes + ' דק׳ · ' + r.difficulty + '</span>' +
+      '</span>' +
+      '<span class="c"><b>' + row.n + '</b><span>' +
+        (row.n === 1 ? 'פעם' : 'פעמים') + '</span></span>' +
+    '</button>';
+  }).join("") + '</div>';
+
+  [].forEach.call(box.querySelectorAll(".myrow"), function(el){
+    el.onclick = function(){
+      var id = el.getAttribute("data-id"), rec = null;
+      RECIPES.forEach(function(x){ if (x.id === id) rec = x; });
+      if (!rec) return;
+      current = { r: rec, e: evaluate(rec, pan) };
+      recipeFrom = "s04";
+      go("s03", false);
+      renderRecipe();
+    };
+  });
 }
 
 /* ========================= S02 ========================= */
@@ -987,7 +1119,7 @@ function renderResult(){
     '</div>' +
     '<p class="more">' + (left > 1 ? "עוד " + left + " מתאימים לך" : left === 1 ? "עוד אחד מתאים לך" : "זה האחרון שמתאים") + '</p>';
 
-  var openRecipe = function(){ go("s03"); renderRecipe(); };
+  var openRecipe = function(){ recipeFrom = "s02"; go("s03"); renderRecipe(); };
   $("cook").onclick = openRecipe;
   /* הכרטיס כולו פותח את המתכון. stopPropagation על הכפתורים
      כדי שלחיצה על "דלג" לא תיפול גם על הכרטיס. */
@@ -1110,6 +1242,7 @@ function renderRecipe(){
   $("good").onclick = function(){
     var n = bumpTried(r.id);
     $("did").innerHTML = '<div class="did-done">✓ נרשם. המונה של המתכון הזה עומד על ' + n + '.</div>';
+    paintMineCount();
   };
 }
 
@@ -1133,6 +1266,8 @@ if (intro) {
 /* ========================= התחלה ========================= */
 renderCommon();
 renderMine();
+paintMineCount();
+$("open-mine").onclick = function(){ go("s04"); renderMyRecipes(); };
 go("s01");
 
 })();

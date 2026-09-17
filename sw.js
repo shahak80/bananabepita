@@ -1,7 +1,7 @@
 /* בננה בפיתה — Service Worker
    בכל עדכון של האתר: להעלות את VERSION. אחרת מבקר קודם נשאר
    תקוע על הגרסה הישנה — זו התקלה מספר אחת בשלב הזה. */
-var VERSION = "bp-v1";
+var VERSION = "bp-v2";
 var SHELL = ["./", "./index.html", "./app.html", "./styles/tokens.css",
              "./assets/pattern/pattern-tile.svg", "./assets/logo/logo-dark.svg",
              "./assets/logo/logo-full-dark.svg", "./icon-192.png"];
