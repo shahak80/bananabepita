@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>בננה בפיתה</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32.svg">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   בננה בפיתה — האפליקציה החיה
+   S01 הזנה → S02 תוצאה → S03 מתכון
+   נייד בלבד (ת5: S00/S04/S05 והדסקטופ אחרי ההגשה)
+
+   כללי מוצר מחייבים המיושמים כאן:
+   · ה64 — סף התאמה לפי ספירה, לא אחוז. אין "78% התאמה" בשום מקום.
+   · ה66 — "יצא לי טוב!" היא בקרת סימון, לא ניווט.
+   · ה67 — ערימת הקלפים = מספר המתכונים שנותרו, עד 3.
+   · אמינות היא מידע גלוי ולא שער כניסה: כל מתכון מתפרסם.
+     מי שאיש לא ניסה מסומן נייטרלית, לא כאזהרה.
+   · הגופנים: Greycliff/Avenir הם גופני פיגמה. בדפדפן — Rubik/Assistant.
+   ========================================================= */
+
+*{box-sizing:border-box;margin:0;padding:0}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+body{
+  font-family:"Assistant",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:var(--text-base);line-height:var(--leading-normal);
+  color:var(--color-text);background:var(--surface-base);
+  min-block-size:100svh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+img{display:block;max-inline-size:100%}
+button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+
+h1,h2,h3,.display{font-family:"Rubik",system-ui,sans-serif;font-weight:900;line-height:var(--leading-tight)}
+
+.app{max-inline-size:var(--max-width);margin-inline:auto;position:relative;
+     padding-block-end:calc(var(--space-16) + env(safe-area-inset-bottom,0px))}
+
+/* ---------- פס העוגן + הקשת ---------- */
+.anchor{position:relative;isolation:isolate;background:var(--gradient-anchor);
+  color:var(--white);padding:var(--space-5) var(--space-5) var(--space-12);
+  border-end-start-radius:50% 46px;border-end-end-radius:50% 46px;overflow:hidden}
+.anchor::after{content:"";position:absolute;inset:0;z-index:-1;
+  background-image:var(--texture-grain);background-size:140px 140px;
+  opacity:var(--texture-opacity-medium);mix-blend-mode:var(--texture-blend)}
+.anchor .context{display:flex;align-items:center;gap:var(--space-3);
+  font-size:var(--text-sm);color:var(--green-200);margin-block-end:var(--space-3);min-block-size:24px}
+.anchor .context button{color:var(--lime-400);text-decoration:underline;
+  text-underline-offset:3px;font-size:var(--text-sm);padding:var(--space-1)}
+.anchor h1{font-size:var(--text-xl)}
+.anchor .sub{font-size:var(--text-sm);color:var(--green-100);margin-block-start:var(--space-2)}
+
+.stage{padding:0 var(--space-5);margin-block-start:-28px;position:relative;z-index:2}
+
+/* ---------- S01 · הזנה ---------- */
+.panel{background:var(--surface-raised);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-card);padding:var(--space-5)}
+.panel + .panel{margin-block-start:var(--space-5)}
+.panel h2{font-size:var(--text-md);margin-block-end:var(--space-1)}
+.panel .hint{font-size:var(--text-sm);color:var(--color-text-muted);margin-block-end:var(--space-4)}
+
+.entry{display:flex;gap:var(--space-2)}
+.entry input{flex:1;min-block-size:48px;padding-inline:var(--space-4);
+  border:2px solid var(--color-border);border-radius:var(--radius-md);
+  font:inherit;font-size:var(--text-base);background:var(--cream-50);color:var(--color-text)}
+.entry input:focus{outline:none;border-color:var(--green-600);box-shadow:var(--shadow-focus)}
+.entry button{min-block-size:48px;min-inline-size:48px;border-radius:var(--radius-md);
+  background:var(--green-700);color:var(--white);font-size:22px;font-weight:700;line-height:1}
+.entry button:focus-visible{outline:none;box-shadow:var(--shadow-focus)}
+
+.chips{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-block-start:var(--space-4)}
+.chip{display:inline-flex;align-items:center;gap:var(--space-2);min-block-size:40px;
+  padding-inline:var(--space-4);border-radius:var(--radius-pill);
+  border:1.5px solid var(--color-border);background:var(--cream-50);
+  font-size:var(--text-sm);color:var(--color-text);transition:all var(--transition-fast)}
+.chip:hover{border-color:var(--green-400)}
+.chip--on{background:var(--green-700);border-color:var(--green-900);color:var(--white);font-weight:600}
+.chip--mine{background:var(--green-100);border-color:var(--green-400);font-weight:600}
+.chip--mine .x{font-size:17px;line-height:1;opacity:.7}
+.chip:focus-visible{outline:none;box-shadow:var(--shadow-focus)}
+
+.mine-empty{font-size:var(--text-sm);color:var(--gray-500);margin-block-start:var(--space-3)}
+
+.tools-row{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3)}
+.tools-row .val{font-family:"Rubik",sans-serif;font-weight:900;font-size:var(--text-lg);color:var(--green-700)}
+input[type=range]{inline-size:100%;margin-block-start:var(--space-3);accent-color:var(--green-700);block-size:32px}
+.scale{display:flex;justify-content:space-between;font-size:var(--text-xs);color:var(--gray-500)}
+
+.go{position:sticky;inset-block-end:var(--space-4);margin-block-start:var(--space-6);
+  display:flex;justify-content:center}
+.btn-primary{inline-size:100%;min-block-size:56px;border-radius:var(--radius-pill);
+  background:var(--color-cta);color:var(--color-cta-text);border:2px solid var(--color-cta-dark);
+  font-family:"Rubik",sans-serif;font-weight:900;font-size:var(--text-md);
+  box-shadow:var(--shadow-md);transition:transform var(--transition-fast)}
+.btn-primary:active{transform:translateY(1px)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary:focus-visible{outline:none;box-shadow:var(--shadow-focus),var(--shadow-md)}
+
+/* ---------- S02 · כרטיס התוצאה ---------- */
+.deck{position:relative}
+.deck .under{position:absolute;inset-inline:0;background:var(--surface-raised);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);border:1px solid var(--color-border)}
+.deck .under.u1{inset-block-start:-8px;inset-inline:10px;block-size:40px;z-index:0;opacity:.75}
+.deck .under.u2{inset-block-start:-15px;inset-inline:20px;block-size:40px;z-index:-1;opacity:.5}
+
+.card{position:relative;z-index:1;background:var(--surface-raised);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-card);overflow:hidden}
+.card .media{aspect-ratio:4/3;background:var(--cream-100);position:relative}
+.card .media img{inline-size:100%;block-size:100%;object-fit:cover}
+.card .tools-badge{position:absolute;inset-block-start:var(--space-3);inset-inline-start:var(--space-3);
+  background:rgba(26,61,42,.88);color:var(--white);border-radius:var(--radius-pill);
+  padding:var(--space-2) var(--space-4);font-size:var(--text-sm);font-weight:600;
+  display:flex;align-items:center;gap:var(--space-2);backdrop-filter:blur(4px)}
+.card .tools-badge b{font-family:"Rubik",sans-serif;font-weight:900;font-size:var(--text-md)}
+
+.card .body{padding:var(--space-5)}
+.card h2{font-size:var(--text-lg);margin-block-end:var(--space-3)}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);
+  font-size:var(--text-sm);color:var(--color-text-muted);margin-block-end:var(--space-4)}
+.meta .dot{opacity:.5}
+
+.fit{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);
+  border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:600;margin-block-end:var(--space-3)}
+.fit--all{background:var(--lime-100);color:var(--green-900)}
+.fit--near{background:var(--banana-100);color:var(--green-900)}
+/* ת16 — הפאנל של "בלי X". כפתור משני בלבד: הפעולה הראשית
+   במסך הזה היא לבשל, ולא לברוח למתכון אחר. */
+.noX{text-align:start}
+.noX-line{font-size:var(--text-sm);color:var(--color-text-muted);margin:0 0 var(--space-3)}
+.noX-line b{color:var(--color-danger)}
+
+/* השלמה במכולת. שורה שקטה מתחת לפעולה הראשית, לא לצידה:
+   הפעולה הראשית במסך היא לבשל, השנייה היא למצוא מתכון אחר,
+   וזו השלישית. היררכיה, לא פיצול החלטה.
+   נפתח בלשונית חדשה כדי שלא להוציא את המשתמש מהמתכון. */
+.shuf{margin-block-start:var(--space-4);display:flex;flex-wrap:wrap;
+  align-items:center;gap:var(--space-2)}
+.shuf-lbl{font-size:var(--text-xs);color:var(--color-text-muted)}
+.shuf a{display:inline-flex;align-items:center;gap:6px;
+  min-block-size:34px;padding:0 var(--space-3);
+  border:1px solid var(--cream-line);border-radius:var(--radius-pill);
+  background:var(--surface-raised);color:var(--green-700);
+  font-size:var(--text-xs);font-weight:700;text-decoration:none;
+  transition:border-color var(--transition-fast),color var(--transition-fast)}
+.shuf a:hover{border-color:var(--green-600);color:var(--green-900)}
+.shuf a:focus-visible{outline:3px solid var(--banana-500);outline-offset:2px}
+.shuf a svg{inline-size:13px;block-size:13px;stroke:currentColor;
+  stroke-width:2;fill:none;flex:none}
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;
+  min-block-size:44px;padding:0 var(--space-5);inline-size:100%;
+  border:1.5px solid var(--green-600);border-radius:var(--radius-pill);
+  background:transparent;color:var(--green-700);
+  font-family:inherit;font-size:var(--text-sm);font-weight:700;cursor:pointer;
+  transition:background .18s ease,color .18s ease}
+.btn-ghost:hover{background:var(--green-700);color:#fff}
+.btn-ghost:focus-visible{outline:3px solid var(--banana-500);outline-offset:2px}
+
+.have,.missing{font-size:var(--text-sm);margin-block-end:var(--space-2);
+  display:flex;gap:var(--space-2);align-items:flex-start;line-height:var(--leading-snug)}
+.have .mk{color:var(--green-700);font-weight:900}
+.missing{color:var(--color-text-muted)}
+.missing .mk{color:var(--color-danger);font-weight:900}
+
+.rule{block-size:1px;background:var(--color-border);margin-block:var(--space-4);border:none}
+
+.tried{font-size:var(--text-sm);color:var(--color-text-muted);display:flex;align-items:center;gap:var(--space-2)}
+.tried--none{color:var(--gray-500)}
+.tried b{font-family:"Rubik",sans-serif;font-weight:900;color:var(--green-700);font-size:var(--text-md)}
+
+.actions{display:flex;justify-content:center;gap:var(--space-8);margin-block-start:var(--space-6)}
+.act{inline-size:var(--action-btn-mobile);block-size:var(--action-btn-mobile);
+  border-radius:var(--radius-circle);display:grid;place-items:center;font-size:28px;
+  box-shadow:var(--shadow-md);transition:transform var(--transition-fast)}
+.act:active{transform:scale(.93)}
+.act:focus-visible{outline:none;box-shadow:var(--shadow-focus),var(--shadow-md)}
+.act--cook{background:var(--action-cook-bg);border:2px solid var(--action-cook-border);color:var(--action-cook-icon)}
+.act--skip{background:var(--action-skip-bg);border:2px solid var(--action-skip-border);color:var(--action-skip-icon)}
+.more{text-align:center;font-size:var(--text-sm);color:var(--color-text-muted);margin-block-start:var(--space-4)}
+
+/* ---------- מצב "לא מצאנו" ---------- */
+.empty{background:var(--surface-sunken);border-radius:var(--radius-lg);
+  padding:var(--space-8) var(--space-5);text-align:center}
+.empty h2{font-size:var(--text-lg);margin-block-end:var(--space-3)}
+.empty p{font-size:var(--text-sm);color:var(--color-text-muted);margin-block-end:var(--space-5)}
+.empty .btn-primary{inline-size:auto;padding-inline:var(--space-8)}
+
+/* ---------- S03 · המתכון ---------- */
+.recipe .hero-img{aspect-ratio:16/10;background:var(--cream-100)}
+.recipe .hero-img img{inline-size:100%;block-size:100%;object-fit:cover}
+.ing{list-style:none;display:grid;gap:var(--space-3)}
+.ing li{display:grid;grid-template-columns:auto 1fr;gap:var(--space-3);
+  align-items:baseline;font-size:var(--text-base);line-height:var(--leading-snug)}
+.ing .tag{font-size:var(--text-xs);font-weight:700;padding:3px 9px;border-radius:var(--radius-pill);white-space:nowrap}
+.tag--req{background:var(--green-100);color:var(--green-900)}
+.tag--opt{background:var(--cream-100);color:var(--gray-700)}
+.tag--swap{background:var(--banana-100);color:var(--green-900)}
+.ing .miss{color:var(--color-danger);font-weight:600}
+.ing .sub{display:block;font-size:var(--text-sm);color:var(--color-text-muted);margin-block-start:2px}
+
+.steps{list-style:none;counter-reset:st;display:grid;gap:var(--space-5)}
+.steps li{counter-increment:st;display:grid;grid-template-columns:34px 1fr;gap:var(--space-4);
+  font-size:var(--text-base);line-height:var(--leading-normal)}
+.steps li::before{content:counter(st);font-family:"Rubik",sans-serif;font-weight:900;
+  inline-size:34px;block-size:34px;border-radius:var(--radius-circle);
+  background:var(--green-700);color:var(--white);display:grid;place-items:center;font-size:var(--text-base)}
+
+.did{margin-block-start:var(--space-8)}
+.did .btn-primary{background:var(--green-700);color:var(--white);border-color:var(--green-900)}
+.did-note{text-align:center;font-size:var(--text-sm);color:var(--color-text-muted);margin-block-start:var(--space-3)}
+.did-done{text-align:center;padding:var(--space-5);background:var(--lime-100);
+  border-radius:var(--radius-lg);font-weight:700;color:var(--green-900)}
+
+.back{display:inline-flex;align-items:center;gap:var(--space-2);
+  font-size:var(--text-sm);color:var(--green-200);padding:var(--space-2);margin-block-end:var(--space-2)}
+
+.notes{font-size:var(--text-sm);color:var(--color-text-muted);background:var(--cream-100);
+  padding:var(--space-4);border-radius:var(--radius-md);margin-block-start:var(--space-5)}
+
+/* =========================================================
+   S00 · מסך הפתיחה
+   השתלטות על כל המסך, מעל שאר האפליקציה. יוצא בלחיצה על
+   "קדימה!" ואז נחשף S01. נשמר ב-localStorage כדי שמשתמש חוזר
+   לא יראה אותו שוב — אבל בהצגה אפשר לאפס עם ?intro=1 בכתובת.
+   ========================================================= */
+.intro{position:fixed;inset:0;z-index:60;isolation:isolate;
+  background:radial-gradient(120% 80% at 50% 38%,
+    var(--green-700) 0%, var(--green-800) 44%, var(--green-900) 100%);
+  color:var(--white);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:var(--space-8) var(--space-6);
+  opacity:1;transition:opacity 420ms ease, visibility 420ms}
+.intro::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background-image:url("assets/pattern/pattern-tile.svg");
+  background-repeat:repeat;background-size:210px 205px;opacity:.11}
+.intro::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(86% 70% at 50% 36%,
+    rgba(13,23,18,0) 0%, rgba(13,23,18,0) 52%,
+    rgba(13,23,18,.12) 76%, rgba(13,23,18,.30) 100%)}
+.intro.is-out{opacity:0;visibility:hidden;pointer-events:none}
+
+.intro__inner{max-inline-size:var(--max-width);inline-size:100%;
+  display:flex;flex-direction:column;align-items:center;gap:var(--space-6)}
+.intro__logo{inline-size:min(200px,52vw);height:auto;
+  filter:drop-shadow(0 10px 26px rgba(13,23,18,.45))}
+.intro h1{font-size:var(--text-xl);line-height:var(--leading-tight);
+  max-inline-size:16ch;text-shadow:0 2px 14px rgba(13,23,18,.45)}
+.intro p{font-size:var(--text-md);color:var(--green-100);max-inline-size:24ch;
+  text-shadow:0 1px 10px rgba(13,23,18,.4)}
+.intro .btn-primary{inline-size:auto;min-inline-size:200px;padding-inline:var(--space-10);
+  margin-block-start:var(--space-4)}
+@media(min-width:768px){
+  .intro h1{font-size:var(--text-2xl)}
+  .intro__logo{inline-size:240px}
+}
+@media (prefers-reduced-motion:reduce){.intro{transition:none}}
+
+.visually-hidden{position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%)}
+[hidden]{display:none!important}
+
+
+/* ================= טאבלט ודסקטופ =================
+   האפליקציה נבנתה נייד-תחילה, והעמודה הצרה נכונה לה. מה שלא
+   נכון הוא עמודה צרה שצפה בתוך מסך ריק בן 1440 פיקסלים.
+   לכן: ברוחבים גדולים העמודה מתרחבת, הרקע מקבל את הפטרן של
+   המותג, והאפליקציה יושבת בתוכו כמשטח ולא כשריד ממסך אחר.
+   שום דבר כאן לא משנה מבנה DOM — רק רוחב, ריווח ומספר עמודות. */
+
+/* ---- טאבלט ---- */
+@media(min-width:768px){
+  .app{max-inline-size:620px}
+  .anchor{padding:var(--space-6) var(--space-6) var(--space-12)}
+  .anchor h1{font-size:var(--text-2xl,28px)}
+  .stage{padding:0 var(--space-6)}
+  .chips{gap:var(--space-3)}
+}
+
+/* ---- דסקטופ ---- */
+@media(min-width:1024px){
+  /* הפטרן ברקע הדסקטופ. בעוצמה מלאה הוא צועק ומושך את העין
+     מהמוצר, ולכן הוא יושב בשכבה נפרדת בשקיפות 9% — אותה עוצמה
+     בדיוק כמו בדף הנחיתה. */
+  body{background-color:var(--green-900)}
+  body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:url("assets/pattern/pattern-tile.svg");
+    background-repeat:repeat;background-size:300px 294px;opacity:.09}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(90% 75% at 50% 30%,
+      rgba(13,23,18,0) 0%, rgba(13,23,18,0) 55%, rgba(13,23,18,.34) 100%)}
+
+  .app{max-inline-size:1000px;z-index:1;
+    background:var(--color-bg,#FBF7EC);
+    margin-block:var(--space-8);
+    border-radius:var(--radius-xl,22px);
+    box-shadow:0 30px 70px rgba(13,23,18,.38), 0 8px 24px rgba(13,23,18,.24);
+    overflow:hidden}
+  .anchor{padding:var(--space-6) var(--space-8) var(--space-16);
+    border-end-start-radius:50% 52px;border-end-end-radius:50% 52px}
+  .anchor .context{font-size:var(--text-md);margin-block-end:var(--space-4)}
+  .anchor h1{font-size:var(--text-3xl,34px)}
+  .stage{padding:0 var(--space-8)}
+
+  /* S02 — הכרטיס נפתח לרוחב. התמונה והתוכן היו ממילא אחים ב-DOM. */
+  .card{display:grid;grid-template-columns:minmax(0,46%) minmax(0,54%)}
+  .card .media{aspect-ratio:auto;block-size:100%;min-block-size:340px}
+  .card .body{padding:var(--space-6)}
+  .deck .under.u1{inset-block-start:-9px}
+  .deck .under.u2{inset-block-start:-17px}
+
+  /* S03 — מצרכים והכנה זה לצד זה, כדי שלא תצטרך לגלול
+     בין "מה חסר לי" לבין "מה עושים עם זה". */
+  .recipe-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+    gap:var(--space-5);align-items:start}
+  .recipe-grid .p-hero{grid-column:1 / -1}
+  .recipe-grid .p-ing{grid-column:1}
+  .recipe-grid .p-steps{grid-column:2;grid-row:2 / span 2}
+  .recipe-grid .noX{grid-column:1}
+  .recipe-grid .did{grid-column:1 / -1}
+  .recipe-grid .hero-img img{max-block-size:380px;object-fit:cover}
+}
+
+/* ---- מסך רחב מאוד ---- */
+@media(min-width:1400px){
+  .app{max-inline-size:1100px}
+}
+
+/* ===================== מעברי מסך (סעיף 7) =====================
+   האפליקציה כולה נגד עומס החלטות, ולכן גם התנועה לא מושכת תשומת
+   לב לעצמה: הסחה, לא הצגה. המשכים לקוחים מ-tokens.css
+   (--transition-normal: 250ms), והכיוון נגזר מהמסע:
+   קדימה S01→S02→S03 המסך החדש נכנס מהצד שאליו נעים,
+   ואחורה הוא נכנס מהצד ההפוך. ב-RTL "קדימה" הוא שמאלה.
+   מי שביקש פחות תנועה מקבל החלפה מיידית. */
+.scr{animation:scr-in 260ms cubic-bezier(.22,.9,.32,1) both}
+.scr.is-back{animation-name:scr-in-back}
+
+@keyframes scr-in{
+  from{opacity:0;transform:translate3d(22px,8px,0)}
+  to  {opacity:1;transform:none}
+}
+@keyframes scr-in-back{
+  from{opacity:0;transform:translate3d(-22px,8px,0)}
+  to  {opacity:1;transform:none}
+}
+
+/* הכותרת העליונה מתחלפת גם היא, אבל חלש יותר —
+   היא ההקשר ולא התוכן, ואסור לה להתחרות בו. */
+.hdr-swap{animation:hdr-in 220ms ease both}
+@keyframes hdr-in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion:reduce){
+  .scr,.scr.is-back,.hdr-swap{animation:none}
+}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1A3D2A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+
+<!-- ================= S00 · מסך הפתיחה ================= -->
+<section class="intro" id="intro" aria-label="בננה בפיתה — מסך פתיחה">
+  <div class="intro__inner">
+    <img class="intro__logo" alt="בננה בפיתה"
+         src="assets/logo/logo-dark.svg"
+         onerror="this.style.display='none'">
+    <h1>תגיד לנו מה יש לך,<br>נגיד לך מה לבשל</h1>
+    <p>בלי קניות, בלי תכנון.<br>רק מה שכבר יש לך במטבח.</p>
+    <button class="btn-primary" type="button" id="intro-go">קדימה!</button>
+  </div>
+</section>
+
+<div class="app">
+  <div class="anchor" id="anchor">
+    <div class="context" id="context"></div>
+    <h1 id="headline">מה יש לך במטבח?</h1>
+    <p class="sub" id="subline">תגיד לנו מה יש — נגיד לך מה לבשל.</p>
+  </div>
+
+  <main class="stage">
+
+    <!-- ============ S01 ============ -->
+    <section id="s01">
+      <div class="panel">
+        <h2>המצרכים שיש לך</h2>
+        <p class="hint">כתוב מה שיש במקרר ובארון. לא מה שחסר.</p>
+
+        <form class="entry" id="entry-form">
+          <input id="entry-input" type="text" placeholder="למשל: בצל" autocomplete="off"
+                 aria-label="הוסף מצרך">
+          <button type="submit" aria-label="הוסף">+</button>
+        </form>
+
+        <div class="chips" id="mine"></div>
+        <p class="mine-empty" id="mine-empty">עדיין לא הוספת כלום.</p>
+
+        <hr class="rule">
+        <p class="hint" style="margin-block-end:var(--space-3)">או בחר מהנפוצים:</p>
+        <div class="chips" id="common"></div>
+      </div>
+
+      <div class="panel">
+        <div class="tools-row">
+          <h2>כמה כלים אתה מוכן לשטוף?</h2>
+          <span class="val" id="tools-val">3</span>
+        </div>
+        <p class="hint">בשמונה בערב זה השיקול האמיתי.</p>
+        <input type="range" id="tools" min="1" max="6" value="3"
+               aria-label="מספר הכלים שאתה מוכן לשטוף">
+        <div class="scale"><span>1</span><span>6 ומעלה</span></div>
+      </div>
+
+      <div class="go">
+        <button class="btn-primary" id="find" disabled>מצא לי מתכון</button>
+      </div>
+    </section>
+
+    <!-- ============ S02 ============ -->
+    <section id="s02" hidden>
+      <div id="result"></div>
+    </section>
+
+    <!-- ============ S03 ============ -->
+    <section id="s03" hidden>
+      <div id="recipe"></div>
+    </section>
+
+  </main>
+</div>
+
+<script id="recipe-data" type="application/json">{"_meta":{"schema":"בננה בפיתה — recipes.json v1","notes":"ingredients[].type: 'main' (נספר בנוסחת ההתאמה FR-2.6) | 'seasoning' (לא נספר). amount=null = כמות לא מספרית במקור (לא ניתן לסקיילינג FR-3.7). necessity: 'required' | 'optional' | 'swappable' (ה64, פריט 14 במפה) — מיושם על כל המתכונים (14.9.2026). amount/amountMax = טווח מספרי לסקיילינג; display = מה שהמזין כתב, וזה מה שמוצג. שדות חדשים, מיושמים על bruschetta-tuna ו-sheuit-yeruka-chik-chak בלבד.","sourceFolder":"_recipes-source/מתכונים/"},"recipes":[{"id":"salat-adashim-shchorot","title":"סלט עדשים שחורות עם עשבי תיבול","source":"_recipes-source/מתכונים/עדשים שחורות עם פטרוזיליה.pdf","prepTimeMinutes":25,"servings":4,"difficulty":"קל","dietary":["טבעוני","צמחוני","ללא גלוטן"],"equipment":["כיריים"],"ingredients":[{"name":"עדשים שחורות (בלוגה)","amount":1,"unit":"כוס","type":"main","necessity":"swappable","substitute":"עדשים חומות או ירוקות"},{"name":"עלי ריחן קצוצים","amount":null,"unit":"כמה עלים","type":"seasoning","necessity":"swappable","substitute":"פטרוזיליה"},{"name":"עלי כוסברה קצוצים","amount":null,"unit":"כמה עלים","type":"seasoning","necessity":"required"},{"name":"עלי נענע קצוצים","amount":null,"unit":"כמה עלים","type":"seasoning","necessity":"required"},{"name":"מיץ לימון","amount":4,"unit":"כפות","type":"seasoning","necessity":"required"},{"name":"מלח ופלפל שחור","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"optional"},{"name":"שמן זית","amount":1,"unit":"כף","type":"seasoning","necessity":"optional"}],"instructions":["שים את העדשים בסיר עם מים רותחים ומעט מלח. תבשל על אש קטנה כ-20 דקות, עד שהעדשים מתרככות. סנן וקרר.","ערבב את העדשים עם כל העלים הקצוצים. הוסף שמן זית, מיץ לימון, מלח ופלפל לפי הטעם.","אפשר להגיש עם טחינה מתובלת בצד."],"notes":"⚠️ מספר המנות לא צוין במקור — הונח 4. מתאים כתוספת לארוחה מפסקת (ציינו במקור)."},{"id":"boureka-filo-adashim","title":"בורקס פילו עם בצל, פטריות ועדשים","source":"_recipes-source/מתכונים/בורקס פילו עם עדשים פטריות ובצל.pdf","prepTimeMinutes":50,"servings":30,"servingsUnit":"בורקסים","difficulty":"בינוני","dietary":["צמחוני"],"equipment":["תנור","כיריים"],"ingredients":[{"name":"עדשים שחורות","amount":0.25,"unit":"כוס","type":"main","necessity":"required"},{"name":"בצל גדול","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"פטריות טריות","amount":1,"unit":"סלסילה","type":"main","necessity":"required"},{"name":"בצק פילו מופשר","amount":0.5,"unit":"חבילה","type":"main","necessity":"swappable","substitute":"בצק עלים (טעם שונה אך עובד)"},{"name":"שמן זית","amount":0.25,"unit":"כוס","type":"seasoning","necessity":"optional"},{"name":"שמן זית (לטיגון הבצל)","amount":1,"unit":"כף","type":"seasoning","necessity":"optional"},{"name":"טימין, מלח, פלפל, אגוז מוסקט","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"optional"}],"instructions":["בשל את העדשים בשתי כוסות מים על אש בינונית כ-20 דקות, עד שמתרככות.","קצוץ את הבצל והפטריות. טגן אותם במחבת עמוקה עם שמן עד שהבצל מזהיב. הוסף את התבלינים והעדשים המבושלות, ערבב הכל יחד ותן לקרר.","חתוך את בצק הפילו לרצועות ברוחב 7 ס\"מ. שים כפית מהמלית בקצה אחת וקפל למשולשים עד הסוף.","סדר את המשולשים על תבנית עם נייר אפייה.","אפה ב-200 מעלות כ-25 דקות, עד שמשחימים ופריכים."],"notes":"⚠️ במקור היה רשום '200 25' ללא הסבר ברור — הונח 200 מעלות, 25 דקות."},{"id":"chatzilim-memulaim","title":"חצילים ממולאים בירקות אפויים (אימאם ביאלדי)","source":"_recipes-source/מתכונים/חציל ממולא בירקות .pdf","prepTimeMinutes":60,"servings":6,"difficulty":"בינוני","dietary":["טבעוני","צמחוני","ללא גלוטן"],"equipment":["תנור","כיריים"],"ingredients":[{"name":"חצילים בינוניים","amount":3,"unit":"יחידות","type":"main","necessity":"required"},{"name":"בצלים גדולים, קצוצים","amount":3,"unit":"יחידות","type":"main","necessity":"required"},{"name":"פלפלים ירוקים בהירים, קצוצים","amount":3,"unit":"יחידות","type":"main","necessity":"required"},{"name":"עגבניות קלופות וקצוצות","amount":3,"unit":"יחידות","type":"main","necessity":"required"},{"name":"שמן זית לטיגון החצילים","amount":0.5,"unit":"כוס","type":"seasoning","necessity":"optional"},{"name":"פלפל חריף, קצוץ","amount":1,"unit":"יחידה","type":"seasoning","necessity":"optional"},{"name":"שום, קצוץ","amount":6,"unit":"שיני שום","type":"seasoning","necessity":"required"},{"name":"פטרוזיליה קצוצה","amount":1,"unit":"כוס","type":"seasoning","necessity":"required"},{"name":"נענע קצוצה","amount":0.33,"unit":"כוס","type":"seasoning","necessity":"required"},{"name":"מלח, פלפל, סוכר","amount":1,"unit":"כפית (כ״א)","type":"seasoning","necessity":"optional"},{"name":"מיץ לימון","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"required"}],"instructions":["קלף שלושה פסים לאורך כל חציל (כל פס ברוחב 2 ס\"מ), כך שיישארו פסי קליפה בין הפסים הקלופים.","חמם שמן עמוק במחבת והשחם את החצילים מכל הצדדים. הוצא אותם על נייר סופג.","הכן את המלית: חמם שמן בסיר, טגן בצל ופלפלים כ-10 דקות. הוסף שום ועגבניות וטגן עוד 6 דקות. הוסף מלח, פלפל, פטרוזיליה, נענע, סוכר ומיץ לימון, ערבב.","מלא את החצילים במלית, סדר בתבנית אפייה צפופה.","אפה כשעה, עד שהחצילים רכים."],"notes":""},{"id":"agvaniot-memulaot-orez","title":"עגבניות ממולאות באורז ובצימוקים","source":"_recipes-source/מתכונים/עגבניות ממולאות באורז.pdf","prepTimeMinutes":50,"servings":6,"difficulty":"בינוני","dietary":["טבעוני","צמחוני"],"equipment":["תנור","כיריים"],"ingredients":[{"name":"עגבניות גדולות ובשלות","amount":6,"unit":"יחידות","type":"main","necessity":"required"},{"name":"אורז ארוך","amount":0.75,"unit":"כוס","type":"main","necessity":"required"},{"name":"צימוקים בהירים","amount":50,"unit":"גרם","type":"main","necessity":"required"},{"name":"שמן זית (במלית)","amount":4,"unit":"כפות","type":"seasoning","necessity":"optional"},{"name":"שמן זית (ברוטב)","amount":0.33,"unit":"כוס","type":"seasoning","necessity":"optional"},{"name":"שמיר קצוץ","amount":3,"unit":"כפות","type":"seasoning","necessity":"required"},{"name":"פטרוזיליה קצוצה","amount":3,"unit":"כפות","type":"seasoning","necessity":"required"},{"name":"ארגנו","amount":1,"unit":"כף + 2 כפות","type":"seasoning","necessity":"optional"},{"name":"בצלים קצוצים דק","amount":2,"unit":"יחידות","type":"main","necessity":"required"},{"name":"רסק עגבניות","amount":100,"unit":"גרם","type":"seasoning","necessity":"required"},{"name":"מלח, פלפל, סוכר","amount":1,"unit":"כפית (כ״א)","type":"seasoning","necessity":"optional"}],"instructions":["חתוך את הפרוסה העליונה של כל עגבנייה ושמור בצד. רוקן את התוך בכפית, שים בקערה, שמור גם את הקליפות.","בשל את האורז במים רותחים כ-5 דקות וסנן.","קצוץ דק את תוך העגבניות שהוצאת, ערבב עם האורז, הצימוקים ושאר מרכיבי המלית.","מלא את העגבניות במלית, סדר בתבנית אפייה, והחזר את ה\"מכסה\" למקומו.","להכנת הרוטב: ערבב רסק עגבניות עם שמן, בצל, עשבי התיבול, ארגנו, מלח ופלפל. הבא לרתיחה כ-10 דקות.","יצוק את הרוטב מעל העגבניות, אפה כשעה וחצי, עד להשחמה."],"notes":""},{"id":"levivot-tapuach-adama-pitriot","title":"לביבות תפוחי-אדמה ממולאות פטריות וצנוברים","source":"_recipes-source/מתכונים/לביבות תפוא ממולאות פטריות.pdf","prepTimeMinutes":70,"servings":6,"difficulty":"בינוני","dietary":["צמחוני"],"equipment":["כיריים","מקרר"],"ingredients":[{"name":"תפוחי אדמה, קלופים ומגוררים דק","amount":1,"unit":"ק\"ג","type":"main","necessity":"required"},{"name":"קמח","amount":1,"unit":"כוס","type":"main","necessity":"required"},{"name":"פטריות שמפיניון, קצוצות","amount":400,"unit":"גרם","type":"main","necessity":"required"},{"name":"צנוברים קלויים","amount":100,"unit":"גרם","type":"main","necessity":"required"},{"name":"בצל גדול קצוץ (למלית)","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"בצל קצוץ דק (לבלילה)","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"שמן זית","amount":8,"unit":"כפות (סה״כ)","type":"seasoning","necessity":"optional"},{"name":"כורכום","amount":0.5,"unit":"כפית","type":"seasoning","necessity":"optional"},{"name":"מלח ופלפל שחור גרוס","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"optional"}],"instructions":["קלף את תפוחי האדמה וגרר דק. העבר למסננת לניקוז.","חמם שמן במחבת, טגן את הבצל הדק כ-5 דקות. הוסף לתפוחי האדמה המגוררים, עם הקמח, המלח, הפלפל והכורכום. ערבב היטב. שמור במקרר כחצי שעה.","הכן את המלית: טגן בצל גדול קצוץ בשמן 5 דקות. הוסף פטריות ופלפל, טגן עוד 10 דקות עד שהנוזלים מתאדים. הוסף צנוברים, ערבב.","צור כדורים מתערובת תפוחי האדמה (קוטר כ-2 ס\"מ), מלא כל כדור בכפית מהמלית, וסגור היטב לכדור.","חמם שמן עמוק במחבת (כ-2 ס\"מ גובה). טבול כל לביבה בקמח או בפירורי לחם, וטגן 3-4 דקות לכל צד, עד שמשחימה.","הגש על נייר סופג, חם או פושר."],"notes":""},{"id":"litchi-chutei-zahav","title":"ליצ'י עם חוטי זהב (קינוח קרמל)","source":"_recipes-source/מתכונים/מאפים וקינוחים/ליצי קינוח עם קרמל.pdf","prepTimeMinutes":30,"servings":4,"difficulty":"בינוני","dietary":["צמחוני"],"equipment":["כיריים"],"ingredients":[{"name":"ליצ'י משימורים, מנוקז","amount":1,"unit":"קופסה","type":"main","necessity":"required"},{"name":"קמח","amount":0.75,"unit":"כוס","type":"main","necessity":"required"},{"name":"קורנפלור","amount":3,"unit":"כפות","type":"main","necessity":"required"},{"name":"חלבון ביצה מוקצף","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"מים קרים (לבלילה)","amount":2.5,"unit":"כפות","type":"seasoning","necessity":"optional"},{"name":"שמן לטיגון עמוק","amount":null,"unit":"כמות מספיקה","type":"seasoning","necessity":"optional"},{"name":"סוכר (לקרמל)","amount":0.5,"unit":"כוס","type":"main","necessity":"required"},{"name":"מים (לקרמל)","amount":3,"unit":"כפות","type":"seasoning","necessity":"optional"},{"name":"שמן (לקרמל)","amount":1,"unit":"כף","type":"seasoning","necessity":"optional"}],"instructions":["הכן בלילה: ערבב קמח, קורנפלור וחלבון מוקצף. הוסף מעט מים קרים, כך שכל ליצ'י יוכל להיטבל בבלילה.","נקז את הליצ'י משימור היטב. טבול כל ליצ'י בבלילה.","חמם שמן לטיגון עמוק. טגן את הליצ'י המצופים עד שמזהיבים יפה — לא יותר מ-5-6 ליצ'י בכל פעם.","להכנת הקרמל: חמם מים וסוכר עד שמתקבל סירופ זהוב. הוסף שמן וערבב.","טבול כל ליצ'י מטוגן בקרמל החם וסדר על צלחת משוחה בשמן.","הגש עם קערית מים קרים בצד — כדי שהסוכר יקריש ויהיו \"חוטי זהב\" יפים."],"notes":"קינוח שדורש דיוק בעבודה עם הקרמל החם — מתאים למשתמש שמרגיש בנוח עם הוראות מדויקות."},{"id":"kruvit-gvina-tanur","title":"כרובית עם גבינה בתנור","source":"_recipes-source/מתכונים/כרובית עם גבינה בתנור.txt","prepTimeMinutes":45,"servings":6,"difficulty":"בינוני","dietary":["צמחוני"],"equipment":["תנור","כיריים"],"ingredients":[{"name":"ראש כרובית שלם","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"חמאה מומסת","amount":6,"unit":"כפות","type":"main","necessity":"required"},{"name":"קמח לבן","amount":0.5,"unit":"כוס","type":"main","necessity":"required"},{"name":"חלב","amount":3,"unit":"כוסות","type":"main","necessity":"required"},{"name":"גבינת פקורינו מגוררת","amount":170,"unit":"גרם","type":"main","necessity":"swappable","substitute":"פרמזן או גבינה צהובה חריפה"},{"name":"פרמזן מגורר","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"required"},{"name":"מלח","amount":1,"unit":"כפית","type":"seasoning","necessity":"optional"},{"name":"קאיין","amount":null,"unit":"קורט","type":"seasoning","necessity":"required"},{"name":"אגוז מוסקט","amount":null,"unit":"קורט","type":"seasoning","necessity":"optional"},{"name":"פירורי לחם","amount":2,"unit":"כפות","type":"seasoning","necessity":"required"},{"name":"שמן זית","amount":1,"unit":"כף","type":"seasoning","necessity":"optional"},{"name":"עירית טרייה לקישוט","amount":null,"unit":"לקישוט","type":"seasoning","necessity":"optional"}],"instructions":["בשל את ראש הכרובית שלם במים רותחים עם מלח, עד שמתרכך (כ-10-15 דקות). סנן.","הכן רוטב בשמל: המס חמאה בסיר, הוסף קמח וערבב דקה. הוסף חלב בהדרגה וערבב עד שהרוטב מסמיך. הוסף מלח, קאיין ואגוז מוסקט.","הוסף לרוטב את רוב הגבינה המגוררת, ערבב עד שנמסה.","שים את הכרובית בתבנית אפייה, יצוק מעליה את הרוטב.","פזר פירורי לחם, מעט גבינת פרמזן, ושמן זית מעל.","אפה כ-20 דקות, עד שמזהיב מלמעלה. קשט בעירית טרייה."],"notes":"תורגם ועובד משפה אנגלית למקור — לא תוצרת מקור עברית."},{"id":"pure-kruvit-shum","title":"פירה כרובית עם שום ועשבי תיבול","source":"_recipes-source/מתכונים/פירה כרובית.pdf","prepTimeMinutes":20,"servings":4,"difficulty":"קל","dietary":["טבעוני","צמחוני","ללא גלוטן"],"equipment":["כיריים"],"ingredients":[{"name":"ראש כרובית","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"שמן זית","amount":1,"unit":"כף","type":"seasoning","necessity":"optional"},{"name":"שום קצוץ","amount":2,"unit":"שיני שום","type":"seasoning","necessity":"required"},{"name":"עשבי תיבול קצוצים (תימין/רוזמרין/מרווה/פטרוזיליה)","amount":1.5,"unit":"כפיות","type":"seasoning","necessity":"required"}],"instructions":["הסר עלים והפרד לפרחי כרובית. שטוף.","חמם כ-2.5 ס\"מ מים בסיר עם רשת מאדה. הוסף את הכרובית ותאדה 6-8 דקות.","בזמן שהכרובית מתאדה, חמם שמן זית במחבת קטנה. הוסף שום קצוץ וטגן 30 שניות, הסר מהאש.","הוצא את הכרובית מהסיר, רוקן את המים, החזר את הכרובית לסיר. הוסף שמן זית, שום ועשבי תיבול.","מעך את הכרובית במועך תפוחי אדמה או בבלנדר מוט, עד מרקם פירה. הגש מיד."],"notes":"תורגם ועובד משפה אנגלית למקור (Downshiftology) — לא תוצרת מקור עברית."},{"id":"meshulashei-tered-afuyim","title":"משולשי תרד אפויים (פטאיר דרוזי)","source":"_recipes-source/מתכונים/משולש תרד אפוי.pdf","prepTimeMinutes":60,"servings":10,"servingsUnit":"משולשים","difficulty":"בינוני","dietary":["צמחוני"],"equipment":["תנור"],"ingredients":[{"name":"בצק שמרים בסיסי, מוכן ומותפח שעתיים","amount":0.5,"unit":"כמות (חצי מתכון בצק)","type":"main","necessity":"required"},{"name":"עלי תרד (או מנגולד / חלמית)","amount":300,"unit":"גרם","type":"main","necessity":"swappable","substitute":"מנגולד או חלמית"},{"name":"בצל ירוק, קצוץ","amount":null,"unit":"כמה גבעולים","type":"main","necessity":"required"},{"name":"סומק","amount":1,"unit":"כפית","type":"seasoning","necessity":"required"},{"name":"מלח","amount":1,"unit":"כפית","type":"seasoning","necessity":"optional"},{"name":"שמן זית לשימון ולרידוד","amount":null,"unit":"כמות מספיקה","type":"seasoning","necessity":"optional"}],"instructions":["הסר את הגבעולים הגסים מעלי התרד. קצוץ דק את העלים ואת הבצל הירוק.","מעך את העלים הקצוצים בידיים וסחוט היטב בין כפות הידיים, כדי להוציא נוזלים עודפים. השלך את הנוזלים.","ערבב את העלים הסחוטים עם הבצל הירוק, הסומק והמלח.","חלק את הבצק ל-9-10 חלקים שווים. רדד כל חלק לעיגול דק מאוד (1-2 מ\"מ), על משטח משומן קלות בשמן זית.","שים כף מהמלית במרכז העיגול. קפל את הבצק לצורת משולש: קפל צד שמאל למרכז, אז צד ימין, ואז את הצד השלישי — כך שהמלית סגורה היטב בלי פתחים.","סדר את המשולשים על תבנית עם נייר אפייה. אפה ב-200 מעלות כ-25 דקות, עד שמשחימים."],"notes":"⚠️ הקובץ המקורי כלל גם מתכון בצק בסיסי משלים ('פיתות דרוזיות') — לא שולב כמתכון נפרד אלא רק כהפניה לבצק הבסיס. זמן ההכנה לא כולל זמן התפחת הבצק (כ-2 שעות מראש)."},{"id":"krem-magozei-kashew","title":"קרם מאגוזי קשיו (תחליף מיונז)","source":"_recipes-source/מתכונים/קרם מאגוזי קשיו.docx","prepTimeMinutes":10,"servings":8,"servingsUnit":"מנות (כרוטב/ממרח)","difficulty":"קל","dietary":["טבעוני","צמחוני","ללא גלוטן"],"equipment":["בלנדר"],"ingredients":[{"name":"אגוזי קשיו חיים, לא קלויים וללא מלח","amount":1,"unit":"כוס","type":"main","necessity":"required"},{"name":"מים לטחינה","amount":0.5,"unit":"כוס (כוון התחלתי: 1/3-3/4 כוס לפי המרקם הרצוי)","type":"seasoning","necessity":"optional"},{"name":"מיץ לימון","amount":1,"unit":"כף","type":"seasoning","necessity":"required"},{"name":"אבקת חרדל, אבקת שום, אבקת בצל, מלח, פלפל (לטעם מיונז)","amount":null,"unit":"לכל 2 כפות קרם","type":"seasoning","necessity":"optional"}],"instructions":["השרה אגוזי קשיו חיים (לא קלויים, בלי מלח) במים, 4-12 שעות בטמפרטורת החדר (או 30 דקות במים חמים אם ממהרים).","סנן וייבש את האגוזים, והעבר לבלנדר.","הוסף מים ומיץ לימון. הפעל את הבלנדר במהירות מלאה כ-2 דקות, עד לקבלת קרם סמיך וחלק. אם צריך, הוסף עוד קצת מים במהלך הטחינה לקבלת המרקם הרצוי.","לטעם שמזכיר מיונז: לכל 2 כפות מהקרם, הוסף אבקת חרדל, אבקת שום, אבקת בצל, מלח, פלפל, ומעט חומץ אם רוצים. אפשר להוסיף גם אבקת צ'ילי לגרסה חריפה."],"notes":"כמות הקשיו ויחס המים אומתו מול מתכוני קשיו-מיונז טבעוניים מקוונים (יחס נפוץ: כוס קשיו ל-1/3-3/4 כוס מים, עם מיץ לימון/חומץ לחמיצות). תחליף לחלב: להוסיף מי סוכר או מי שיבולת שועל (קוואקר) במקום מים בזמן הטחינה, ואולי קינמון."},{"id":"tavshil-harira-im-basar","title":"תבשיל \"חרירה\" עם בשר","source":"_recipes-source/מתכונים/תבשיל חרירה עם בשר.docx","prepTimeMinutes":180,"servings":6,"difficulty":"בינוני","dietary":["ללא גלוטן"],"equipment":["כיריים"],"ingredients":[{"name":"נתח בקר עם שיעור שומן גבוה (30% ומעלה)","amount":400,"unit":"גרם","type":"main","necessity":"required"},{"name":"עדשים","amount":1,"unit":"כוס","type":"main","necessity":"required"},{"name":"בצל קצוץ (לעדשים)","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"בצל קצוץ (לבשר)","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"עגבניות חתוכות (רצוי מקולפות)","amount":3,"unit":"יחידות","type":"main","necessity":"required"},{"name":"שום קצוץ","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"required"},{"name":"כרפס קצוץ","amount":null,"unit":"כמה גבעולים","type":"seasoning","necessity":"required"},{"name":"כוסברה ופטרוזיליה קצוצים","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"required"},{"name":"כורכום, כמון, פלפל שחור, מלח","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"optional"},{"name":"ציפורן, עלה דפנה, פלפל אנגלי","amount":null,"unit":"מעט","type":"seasoning","necessity":"optional"}],"instructions":["בסיר גדול, השחם את נתח הבקר עם שמן מכל הצדדים על אש גדולה. הוצא לצד.","במחבת אחרת, טגן בצל קצוץ עם שמן עד שמשחים. הוסף שום וכרפס קצוץ, טגן עוד דקה. הוסף כוסברה ופטרוזיליה קצוצה.","הקטן את האש, הוסף עגבניות חתוכות, כורכום, כמון, פלפל שחור ומלח. הוסף את העדשים ובשל לפי ההוראות על השקית — זה תבשיל העדשים.","בסיר אחר, טגן בצל קצוץ עד שמשחים. החזר את הנתח שהושחם, עם כרפס, פלפל שחור, ציפורן, עלה דפנה ופלפל אנגלי.","הוסף מים — לא לכסות את כל הבשר, רק עד כחצי מגובהו. בשל על אש קטנה 2-3 שעות, עד שהבשר רך ונפרד בקלות. הוסף מים מדי פעם כדי שלא יתאדו לגמרי, ויצוק מי תבשיל על החלק החשוף שלא יתייבש.","שלב את תבשיל הבשר עם תבשיל העדשים. הגש חם."],"notes":"כמות הבקר והעדשים אומתו מול כמה מתכוני חרירה מקוונים ל-6-8 מנות (טווח נפוץ: 300-500 גרם בקר, כ-1 כוס עדשים) — נבחרה הנקודה האמצעית. שני תבשילים מתבשלים בנפרד ומשולבים בסוף, דורש תכנון זמן."},{"id":"mukpatz-sini-tzimchoni","title":"מוקפץ סיני צמחוני עם כרוב (צ'או מיין)","source":"_recipes-source/מתכונים/מוקפץ סיני צמחוני עם כרוב.docx","prepTimeMinutes":40,"servings":4,"difficulty":"בינוני-קשה","dietary":["צמחוני"],"equipment":["כיריים"],"ingredients":[{"name":"נודלס","amount":250,"unit":"גרם","type":"main","necessity":"required"},{"name":"כרוב ירוק קצוץ דק","amount":3,"unit":"כוסות","type":"main","necessity":"required"},{"name":"נבטים","amount":1,"unit":"כוס","type":"main","necessity":"required"},{"name":"גזר, מקולף וקצוץ לרצועות","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"סלרי, גבעולים","amount":1.5,"unit":"גבעולים","type":"main","necessity":"required"},{"name":"שום קצוץ","amount":6,"unit":"שיני שום (סה״כ)","type":"seasoning","necessity":"required"},{"name":"בצל ירוק","amount":2,"unit":"יחידות","type":"main","necessity":"required"},{"name":"שמן צמחי לטיגון","amount":null,"unit":"כמות מספיקה","type":"seasoning","necessity":"optional"},{"name":"יין בישול סיני (או יין לבן יבש)","amount":0.33,"unit":"כוס","type":"seasoning","necessity":"swappable","substitute":"יין לבן יבש"},{"name":"רוטב סויה כהה","amount":0.33,"unit":"כוס","type":"seasoning","necessity":"required"},{"name":"פלפל לבן טחון","amount":null,"unit":"קורט","type":"seasoning","necessity":"optional"},{"name":"שמן שומשום קלוי","amount":0.25,"unit":"כוס","type":"seasoning","necessity":"optional"},{"name":"רוטב צדפות (או תחליף צמחוני)","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"swappable","substitute":"רוטב סויה כהה נוסף לגרסה טבעונית"},{"name":"קורנפלור","amount":2,"unit":"כפות","type":"seasoning","necessity":"required"},{"name":"מים","amount":30,"unit":"מ\"ל","type":"seasoning","necessity":"optional"}],"instructions":["הכן את הרוטב: בקערה קטנה, ערבב יין בישול, רוטב סויה כהה, פלפל לבן, שמן שומשום ורוטב צדפות. הוסף קורנפלור ומים, ערבב היטב.","בשל את הנודלס בסיר מים רותחים לפי ההוראות על האריזה. סנן ושטוף במים קרים.","חמם שמן במחבת עמוקה (וואק) על אש גבוהה עד שמתחיל לעלות קיטור. שפוך את השמן ונקה את המחבת במגבת נייר.","חמם שמן טרי במחבת. הוסף בצל ירוק, סלרי, גזר וכרוב. בשל על אש גבוהה תוך ערבוב נמרץ כ-20-30 שניות, תן לנוח רגע וחזור על הפעולה — כ-3 דקות בסך הכל, עד שהירקות צבעוניים ורכים אך עדיין פריכים.","הוצא את הירקות לקערה בצד. חמם עוד שמן במחבת עד שחם מאוד. הוסף שום וטגן תוך ערבוב עד שמזהיב.","החזר את הירקות למחבת, הוסף את הנודלס וטגן דקה על אש גבוהה. הוסף את הרוטב, טגן עוד 30 שניות, הוסף נבטים וטגן עוד 30 שניות.","כבה את האש, הוסף עוד שום קצוץ ובצל ירוק פרוס. הגש מיד."],"notes":"אופציונלי בקובץ המקור: אפשר להוסיף חזה עוף או שרימפס מבושלים מראש (לא טבעוני/צמחוני אם מוסיפים)."},{"id":"of-berotev-afuna","title":"עוף ברוטב אפונה ותפוחי אדמה","source":"_recipes-source/מתכונים/עוף ברוטב אפונה ותפוחי אדמה.docx","prepTimeMinutes":75,"servings":4,"difficulty":"קל","dietary":["ללא גלוטן"],"equipment":["כיריים"],"ingredients":[{"name":"שוקי עוף","amount":3,"unit":"יחידות","type":"main","necessity":"required"},{"name":"כרעיים","amount":3,"unit":"יחידות","type":"main","necessity":"required"},{"name":"תפוחי אדמה בינוניים, מקולפים וחתוכים לרבעים","amount":4,"unit":"יחידות","type":"main","necessity":"required"},{"name":"אפונה קפואה, מופשרת","amount":2.5,"unit":"כוסות","type":"main","necessity":"required"},{"name":"בצל בינוני, קצוץ דק","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"מים (או ציר עוף)","amount":1.5,"unit":"כוסות","type":"seasoning","necessity":"optional"},{"name":"שמן זית לטיגון","amount":null,"unit":"מעט","type":"seasoning","necessity":"optional"},{"name":"כוסברה, פטרוזיליה ושמיר קצוצים","amount":0.5,"unit":"צרור מעורבב","type":"seasoning","necessity":"required"},{"name":"פפריקה מתוקה","amount":1,"unit":"כפית","type":"seasoning","necessity":"optional"},{"name":"מלח ופלפל שחור","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"optional"}],"instructions":["טגן בסיר את הבצל הקצוץ בשמן זית עד לשקיפות.","הוסף את עשבי התיבול הקצוצים, הפפריקה, המלח והפלפל, ערבב קלות.","הוסף את תפוחי האדמה, חלקי העוף והמים (או הציר).","הוסף את האפונה, ערבב בעדינות, כסה את הסיר והבא לרתיחה. הקטן את האש ובשל כשעה, עד שהעוף ותפוחי האדמה רכים."],"notes":""},{"id":"pizza-mikruvit","title":"פיצה מכרובית — דלת פחמימות","source":"_recipes-source/מתכונים/פיצה מכרובית.docx","prepTimeMinutes":45,"servings":3,"difficulty":"בינוני","dietary":["צמחוני","ללא גלוטן"],"equipment":["תנור","בלנדר או מעבד מזון"],"ingredients":[{"name":"ראש כרובית (רק הפרחים)","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"ביצים","amount":2,"unit":"יחידות","type":"main","necessity":"required"},{"name":"גבינת מוצרלה מגוררת","amount":50,"unit":"גרם","type":"main","necessity":"required"},{"name":"גבינת פרמזן מגוררת","amount":25,"unit":"גרם (לא חובה)","type":"seasoning","necessity":"optional"},{"name":"רוטב, גבינה ותוספות לאפייה השנייה","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"required"}],"instructions":["הפרד את פרחי הכרובית מהגבעולים (שמור את הגבעולים לבישול אחר).","טחן את הפרחים בבלנדר או במעבד מזון עד למרקם גס (כמו קוסקוס גס) — לא עד לפירה.","בשל את המחית במחבת רחבה, כדי לרכך אותה ולהוציא נוזלים עודפים.","ייבש את המחית על מגבת נייר, כדי שיתאדו כמה שיותר נוזלים.","ערבב את המחית היבשה עם הביצים, גבינת המוצרלה (יבשה ככל האפשר) וגבינת הפרמזן.","פזר את העיסה על תבנית עם נייר אפייה בצורת עיגול, כמו בצק פיצה.","אפה בתנור ב-200 מעלות 20 דקות.","הוסף רוטב, גבינה ותוספות לפי הטעם. החזר לתנור ל-200 מעלות עוד כ-8 דקות, עד שהגבינה נמסה."],"notes":""},{"id":"marak-batzal","title":"מרק בצל פשוט ומהיר","source":"_recipes-source/מתכונים/מרק בצל פשוט ומהיר.docx","prepTimeMinutes":45,"servings":6,"difficulty":"קל","dietary":["צמחוני"],"equipment":["כיריים","תנור (אופציונלי, לגרסה מוקרמת)"],"ingredients":[{"name":"בצלים בינוניים","amount":6.5,"unit":"יחידות","type":"main","necessity":"required"},{"name":"חמאה (או שמן למרק פרווה)","amount":60,"unit":"גרם","type":"seasoning","necessity":"swappable","substitute":"שמן למרק פרווה"},{"name":"קמח לבן (לא חובה, מסמיך את המרק)","amount":2,"unit":"כפות גדושות","type":"seasoning","necessity":"optional"},{"name":"אבקת מרק בצל","amount":1,"unit":"כף גדושה","type":"seasoning","necessity":"required"},{"name":"מלח ופלפל","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"optional"},{"name":"גבינה צהובה מגוררת (לגרסה מוקרמת)","amount":150,"unit":"גרם","type":"main","necessity":"optional"}],"instructions":["קלף את הבצלים וחתוך לפרוסות בינוניות.","בסיר המרק, המס חמאה או חמם שמן, וטגן את הבצל עד שהוא משחים — לא נשרף. זה לוקח זמן, ערבב מדי פעם והתאזר בסבלנות.","כשהבצל משחים, הוסף קמח (אם רוצים מרק סמיך) וערבב היטב כחצי דקה.","הוסף מים ואבקת מרק בצל עם המלח והפלפל. הבא לרתיחה ובשל על להבה נמוכה עד לקבלת מרק סמיך.","לגרסה מוקרמת: יצוק את המרק לקערית חסינת חום, גרר מעליו גבינה צהובה והכנס לתנור על מצב גריל כ-2 דקות, עד שהגבינה משחימה קלות."],"notes":""},{"id":"marak-yerakot","title":"מרק ירקות פשוט וטעים","source":"_recipes-source/מתכונים/מרק ירקות פשוט וטעים.docx","prepTimeMinutes":40,"servings":6,"difficulty":"קל","dietary":["טבעוני","צמחוני"],"equipment":["כיריים"],"ingredients":[{"name":"בצל קצוץ דק","amount":1,"unit":"יחידה","type":"main","necessity":"required"},{"name":"ירקות שורש לבחירה (גזר, בטטה, תפוחי אדמה)","amount":null,"unit":"לפי הטעם","type":"main","necessity":"optional"},{"name":"עגבניות קצוצות","amount":2,"unit":"יחידות","type":"main","necessity":"required"},{"name":"ירק נוסף אחד (כרוב לבן / כרוב קייל / תרד / פטריות)","amount":null,"unit":"בחירה אחת בלבד","type":"main","necessity":"required"},{"name":"כרפס (אופציונלי)","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"optional"},{"name":"יין לבן / אדום / בירה","amount":0.5,"unit":"כוס","type":"seasoning","necessity":"swappable"},{"name":"שום כתוש","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"required"},{"name":"פלפל חריף קצוץ (אופציונלי)","amount":null,"unit":"לפי הטעם","type":"seasoning","necessity":"optional"}],"instructions":["קצוץ בצל (רצוי דק) וטגן מעט עד שהוא שקוף-חום.","הוסף ירקות שורש לבחירה וכרפס אם רוצים, ערבב.","הוסף מים עד כיסוי. הוסף עגבניות קצוצות.","הוסף את היין או הבירה — זה נותן עומק טעם למרק.","אחרי כ-20 דקות בישול, אפשר להוסיף ירק נוסף אחד (לא כולם יחד, כל ירק משנה את הטעם): כרוב לבן, כרוב קייל (לזמן קצר בלבד), תרד או פטריות.","בשל על אש קטנה זמן רב — כאן הסוד (חוץ מקייל, שמתבשל מהר).","לקראת הסוף, הוסף שום כתוש כדי לשמור על חריפות. הוסף פלפל חריף קצוץ אם רוצים."],"notes":"מתכון גמיש — בחר ירק אחד נוסף בכל פעם כדי לשנות את הטעם."},{"id":"ugat-shmarim-tapuchim","title":"עוגת שמרים עם תפוחים וצימוקים","source":"_recipes-source/מתכונים/מאפים וקינוחים/עוגת שמרים עם תפוחים וצימוקים.docx","prepTimeMinutes":180,"servings":8,"difficulty":"בינוני-קשה","dietary":["צמחוני"],"equipment":["תנור"],"ingredients":[{"name":"קמח","amount":500,"unit":"גרם","type":"main","necessity":"required"},{"name":"שמרים","amount":25,"unit":"גרם","type":"main","necessity":"required"},{"name":"חמאה","amount":83,"unit":"גרם","type":"main","necessity":"required"},{"name":"חלב (או שמנת)","amount":150,"unit":"גרם (או 230 גרם שמנת)","type":"main","necessity":"swappable","substitute":"שמנת"},{"name":"ביצים","amount":2,"unit":"יחידות","type":"main","necessity":"required"},{"name":"תפוחים גדולים, קלופים וקצוצים, מבושלים חצי-בישול בלי סוכר","amount":5,"unit":"יחידות","type":"main","necessity":"required"},{"name":"צימוקים, מושרים שעה במים או יין חמים","amount":60,"unit":"גרם","type":"main","necessity":"swappable"},{"name":"סוכר","amount":50,"unit":"גרם","type":"seasoning","necessity":"optional"},{"name":"מלח","amount":0.5,"unit":"כפית","type":"seasoning","necessity":"optional"}],"instructions":["ערבב את המרכיבים היבשים בנפרד ואת הרטובים בנפרד (בלי הפירות), ואז ערבב הכל יחד ולוש לבצק. הבצק צריך להיות מעט דביק.","תן לבצק לתפוח שעה וחצי במקום לא חם (יש הרבה חמאה בבצק).","לוש שוב וצור צורת עוגה בתבנית.","תן לבצק לתפוח עוד חצי שעה.","בזמן ההתפחה, השרה את הצימוקים והכן את התפוחים (קצוץ ובשל חצי-בישול בלי סוכר).","שלב את הפירות בעיסה — או בצורת רוגעלך, או מוטמעים בתוך הבצק.","תן לבצק לתפוח עוד 20 דקות.","אפה ב-180 מעלות חצי שעה, עם כלי מים בתבנית התחתונה של התנור."],"notes":"כמות התפוחים אומתה מול מתכוני עוגת שמרים-תפוחים-צימוקים מקוונים דומים (5 תפוחים גדולים הוא הכמות הנפוצה לעוגה בגודל זה). לא הוכרע אם הפירות משולבים כרוגעלך או בתוך הבצק עצמו — שתי האפשרויות עבדו לדברי המקור."},{"id":"bruschetta-tuna","title":"ברוסקטות טונה","source":"הוזן ידנית 14.9.2026 — מתכון משפחתי, ללא מקור כתוב","prepTimeMinutes":30,"servings":6,"difficulty":"קל","dietary":[],"equipment":["תנור"],"ingredients":[{"name":"פלפלים מתוקים","amount":null,"amountMax":null,"unit":null,"display":"לפי הטעם","type":"main","necessity":"required","substitute":"פלפלים חריפים"},{"name":"פיתה או בגט","amount":null,"amountMax":null,"unit":null,"display":"לפי הטעם","type":"main","necessity":"required","substitute":"פיתה"},{"name":"פחית טונה","amount":1,"amountMax":null,"unit":"פחית","display":"1 פחית","type":"main","necessity":"required"},{"name":"פטרוזיליה","amount":null,"amountMax":null,"unit":null,"display":"לפי הטעם","type":"seasoning","necessity":"required"},{"name":"שמן זית","amount":null,"amountMax":null,"unit":null,"display":"לפי הטעם","type":"seasoning","necessity":"required"},{"name":"חומץ בלסמי (רכז)","amount":null,"amountMax":null,"unit":null,"display":"לפי הטעם","type":"seasoning","necessity":"required"},{"name":"גרידת לימון","amount":null,"amountMax":null,"unit":null,"display":"לפי הטעם","type":"seasoning","necessity":"required"},{"name":"שום כתוש","amount":null,"amountMax":null,"unit":null,"display":"לפי הטעם","type":"seasoning","necessity":"optional","substitute":"אבקת שום"},{"name":"מיונז","amount":null,"amountMax":null,"unit":null,"display":"לפי הטעם","type":"seasoning","necessity":"optional","substitute":"כל ממרח אחר"}],"instructions":["מועכים מעט את הטונה כדי שתהיה קלה למזיגה ולא גושית. מי שרוצה — מועך אותה עם מיונז או כל ממרח אחר.","קוצצים דק-דק את הפטרוזיליה ואת הפלפלים המתוקים, ומוסיפים שום כתוש (או אבקת שום) וגרידת לימון.","מערבבים עם חומץ בלסמי ומעט שמן זית. זהו רוטב הצ'ימיצ'ורי.","חותכים מהבגט פרוסות בעובי אצבע. אפשר לטבול במעט שמן זית — לא חובה.","מכניסים לתנור שחומם ל-180 מעלות, ל-10 עד 15 דקות, עד שהפרוסות נצבעות ונראות קלויות.","מגישים על צלחת גדולה: מניחים את הפרוסות, מוזגים על כל אחת כפית טונה, ומעל — רוטב הצ'ימיצ'ורי."],"notes":"⚠️ מספר המנות לא צוין במקור (\"מגישים על צלחת גדולה עבור כולם\") — הונח 6. ⚠️ זמן ההכנה לא צוין; 10–15 הדקות שבמקור הן זמן האפייה בלבד — הונח 30 סה\"כ. ⚠️ אף מצרך לא כלל כמות. ⚠️ המיונז הופיע בהוראות בלבד ולא ברשימת המצרכים. ⚠️ שם הרוטב (\"צ'ימיצ'ורי\") הופיע רק בשורה האחרונה בלי שהוגדר — נוסף שלב 3 שמקשר בין התערובת לשם. מכיל דגים וגלוטן."},{"id":"sheuit-yeruka-chik-chak","title":"שעועית ירוקה צ'יק צ'ק","source":"הוזן ידנית 14.9.2026 — מתכון משפחתי, נמסר כפסקה אחת רצופה","prepTimeMinutes":25,"servings":4,"difficulty":"קל","dietary":["טבעוני","צמחוני"],"equipment":["כיריים"],"ingredients":[{"name":"שעועית ירוקה קפואה","amount":1,"amountMax":3,"unit":"שקית","display":"שקית (לכמות גדולה — 2–3 שקיות, ואז צריך כלי גדול או לעבוד בנגלות)","type":"main","necessity":"required"},{"name":"רוטב טריאקי","amount":200,"amountMax":null,"unit":"מ\"ל","display":"לפחות חצי בקבוק — כוס וחצי, כ-200 מ\"ל (לשתי שקיות)","type":"main","necessity":"swappable","substitute":"רוטב צ'ילי מתוק"},{"name":"שמן זית","amount":3,"amountMax":5,"unit":"כפות","display":"טיפה לכמות קטנה · 3–5 כפות לכמות גדולה","type":"seasoning","necessity":"required","substitute":"כל שמן אחר"},{"name":"שום כתוש","amount":null,"amountMax":null,"unit":null,"display":"לפי הטעם","type":"seasoning","necessity":"required","substitute":"אבקת שום או שום גבישי"},{"name":"רוטב סויה","amount":null,"amountMax":null,"unit":null,"display":"טיפונת","type":"seasoning","necessity":"optional"},{"name":"שומשום","amount":null,"amountMax":null,"unit":null,"display":"לגיוון","type":"seasoning","necessity":"optional"}],"instructions":["מרתיחים את השעועית במים רותחים חמש דקות. אפשר להפשיר כמה דקות קודם, אבל לא חובה. יותר זמן — רכה יותר; לא יותר מעשר דקות.","מיד אחרי ההרתחה מעבירים למי קרח (או למים קרים, אם אין קרח).","מחממים היטב מחבת עם שמן — טיפה לכמות קטנה, שלוש עד חמש כפות לכמות גדולה.","מוסיפים את השעועית ומטגנים היטב, עד שחלק מהתרמילים משחימים ומקבלים סימני חריכה. לא כולם.","מוסיפים את הרוטב, השום, ומי שרוצה גם שומשום.","מערבבים ברציפות בכף עץ במשך עשר דקות עד רבע שעה — ומוכן."],"notes":"⚠️ מספר המנות לא צוין; הונח 4 לשקית אחת. ⚠️ זמן ההכנה לא צוין; חושב מ-5 דקות הרתחה + 10–15 דקות טיגון. ⚠️ המקור נמסר כפסקה אחת רצופה, בלי רשימת מצרכים נפרדת — המצרכים חולצו מתוך ההוראות. ⚠️ המקור נקב במותג (\"סנפרוסט\") כיחידת מידה; השם נורמל ל\"שעועית ירוקה קפואה\" והמותג נשמר מחוץ לשם. ⚠️ הגלוטן תלוי ברוטב הנבחר (סויה וטריאקי מכילים בדרך כלל חיטה) — לכן \"ללא גלוטן\" לא סומן. ⚠️ מי קרח הם דרישת טכניקה ולא מצרך — נשארו בהוראות בלבד. כלים: סיר · מחבת · כף עץ."}]}</script>
+<script>
+(function () {
+"use strict";
+
+var DATA = JSON.parse(document.getElementById("recipe-data").textContent);
+var RECIPES = DATA.recipes;
+
+/* =========================================================
+   1 · מונה הכלים — גזירה מבוססת כללים, בלי מודל שפה
+   נספרים רק כלים שצריך לשטוף. תנור, כיריים ומקרר אינם נשטפים.
+   אותו עיקרון כמו המפרק: לקסיקון, לא ניחוש.
+   ========================================================= */
+var VESSELS = [
+  ["סיר","סיר"],["מחבת","מחבת"],["ווק","ווק"],
+  ["קערה","קערה"],["קערת","קערה"],["קעריות","קערה"],
+  ["תבנית","תבנית"],["מסננת","מסננת"],["בלנדר","בלנדר"],
+  ["מעבד מזון","מעבד מזון"],["מערוך","מערוך"],["קרש","קרש חיתוך"],
+  ["מטרפה","מטרפה"],["כף עץ","כף"],["סכין","סכין"],["מגרדת","מגרדת"],
+  ["מחית","כלי מחית"],["פומפייה","פומפייה"]
+];
+var NOT_WASHED = /תנור|כיריים|מקרר|מיקרוגל|גז/;
+
+function toolsFor(r){
+  var text = (r.instructions || []).join(" ") + " " +
+             (r.equipment || []).filter(function(e){ return !NOT_WASHED.test(e); }).join(" ");
+  var found = {};
+  VESSELS.forEach(function(pair){
+    if (text.indexOf(pair[0]) !== -1) found[pair[1]] = true;
+  });
+  var n = Object.keys(found).length;
+  return n < 1 ? 1 : n;   /* כל מתכון דורש לפחות כלי אחד */
+}
+
+/* =========================================================
+   2 · ההתאמה — ספירה, לא אחוז (ה64)
+   required שלא נמצא = חסר.
+   swappable = חסר רק אם גם התחליף לא נמצא.
+   optional = לעולם לא חסר.
+   ========================================================= */
+function norm(s){
+  return String(s || "")
+    .replace(/[״"'`.,()]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function has(pantry, name){
+  var n = norm(name);
+  for (var i = 0; i < pantry.length; i++) {
+    var p = pantry[i];
+    if (p.length < 2) continue;
+    if (n.indexOf(p) !== -1) return true;
+    /* התאמה הפוכה: המשתמש כתב "עגבניות", המתכון כתב "עגבנייה" */
+    if (p.length > 3 && n.indexOf(p.slice(0, p.length - 1)) !== -1) return true;
+  }
+  return false;
+}
+
+function evaluate(r, pantry){
+  var missing = [], hits = [], swaps = [];
+  r.ingredients.forEach(function(ing){
+    var name = ing.display || ing.name;
+    if (has(pantry, ing.name)) { hits.push(name); return; }
+    if (ing.necessity === "optional") return;
+    if (ing.necessity === "swappable") {
+      if (ing.substitute && has(pantry, ing.substitute)) { hits.push(name); return; }
+      swaps.push(name);
+      missing.push(name);
+      return;
+    }
+    missing.push(name);
+  });
+  return { missing: missing, hits: hits, swaps: swaps, tools: toolsFor(r) };
+}
+
+/* =========================================================
+   3 · המונה "נוסה ע״י" — נשמר בדפדפן
+   מתחיל ב-0. אפס אינו אזהרה, הוא הזמנה.
+   ========================================================= */
+function triedKey(id){ return "bp-tried-" + id; }
+function getTried(id){
+  try { return parseInt(localStorage.getItem(triedKey(id)) || "0", 10) || 0; }
+  catch (e) { return 0; }
+}
+function bumpTried(id){
+  var n = getTried(id) + 1;
+  try { localStorage.setItem(triedKey(id), String(n)); } catch (e) {}
+  return n;
+}
+
+/* ========================= מצב ========================= */
+var pantry = [], maxTools = 3, queue = [], idx = 0, current = null;
+/* ת16 — מרכיב שהמשתמש ביקש לעקוף ("מצא לי מתכון בלי X") */
+var excluded = null;
+
+var COMMON = ["ביצים","בצל","גבינה","עגבניות","תפוחי אדמה","אורז","קמח","חלב",
+              "שמן זית","לימון","פטריות","כרובית","עדשים","גזר","שום","טונה",
+              "תרד","כרוב","אפונה","צימוקים","חצילים","עוף"];
+
+var $ = function (id) { return document.getElementById(id); };
+
+/* ========================= S01 ========================= */
+function renderMine(){
+  var box = $("mine");
+  box.innerHTML = "";
+  pantry.forEach(function(p, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip chip--mine";
+    b.innerHTML = p + ' <span class="x" aria-hidden="true">×</span>';
+    b.setAttribute("aria-label", "הסר " + p);
+    b.onclick = function(){ pantry.splice(i,1); renderMine(); renderCommon(); };
+    box.appendChild(b);
+  });
+  $("mine-empty").hidden = pantry.length > 0;
+  $("find").disabled = pantry.length === 0;
+}
+function renderCommon(){
+  var box = $("common");
+  box.innerHTML = "";
+  COMMON.forEach(function(c){
+    var on = pantry.indexOf(c) !== -1;
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip" + (on ? " chip--on" : "");
+    b.textContent = c;
+    b.setAttribute("aria-pressed", String(on));
+    b.onclick = function(){
+      var at = pantry.indexOf(c);
+      if (at === -1) pantry.push(c); else pantry.splice(at,1);
+      renderMine(); renderCommon();
+    };
+    box.appendChild(b);
+  });
+}
+$("entry-form").onsubmit = function(e){
+  e.preventDefault();
+  var v = norm($("entry-input").value);
+  if (v && pantry.indexOf(v) === -1) pantry.push(v);
+  $("entry-input").value = "";
+  renderMine(); renderCommon();
+};
+$("tools").oninput = function(){
+  maxTools = parseInt(this.value, 10);
+  $("tools-val").textContent = maxTools === 6 ? "6+" : maxTools;
+};
+$("find").onclick = function(){ excluded = null; search(); };
+
+/* ========================= החיפוש ========================= */
+function search(){
+  var scored = RECIPES.map(function(r){
+    var e = evaluate(r, pantry.map(norm));
+    return { r: r, e: e };
+  }).filter(function(x){
+    return x.e.hits.length > 0;             /* חייב לגעת במשהו שיש לך */
+  }).filter(function(x){
+    return x.e.tools <= maxTools;           /* מונה הכלים הוא מסנן אמיתי */
+  }).filter(function(x){
+    /* ת16 — "בלי X": מוציא כל מתכון שדורש את מה שחסר לך */
+    return !excluded || x.e.missing.indexOf(excluded) === -1;
+  });
+
+  scored.sort(function(a,b){
+    if (a.e.missing.length !== b.e.missing.length) return a.e.missing.length - b.e.missing.length;
+    if (a.e.tools !== b.e.tools) return a.e.tools - b.e.tools;
+    return (a.r.prepTimeMinutes||999) - (b.r.prepTimeMinutes||999);
+  });
+
+  queue = scored; idx = 0;
+  go("s02");
+  renderResult();
+}
+
+var SCREENS = ["s01","s02","s03"];
+var lastScreen = "s01";
+
+function go(which){
+  /* כיוון התנועה נגזר מהמיקום ברצף, לא מנחושׁ. */
+  var back = SCREENS.indexOf(which) < SCREENS.indexOf(lastScreen);
+  lastScreen = which;
+
+  SCREENS.forEach(function(s){ $(s).hidden = (s !== which); });
+  window.scrollTo(0,0);
+
+  var el = $(which);
+  el.classList.remove("scr","is-back");
+  void el.offsetWidth;                      /* מאלץ reflow כדי שהאנימציה תרוץ שוב */
+  el.classList.add("scr");
+  if (back) el.classList.add("is-back");
+
+  var hb = document.querySelector(".hdr") || $("headline").parentNode;
+  if (hb) { hb.classList.remove("hdr-swap"); void hb.offsetWidth; hb.classList.add("hdr-swap"); }
+
+
+  var ctx = $("context"), head = $("headline"), sub = $("subline");
+  if (which === "s01") {
+    ctx.innerHTML = "";
+    head.textContent = "מה יש לך במטבח?";
+    sub.textContent = "תגיד לנו מה יש — נגיד לך מה לבשל.";
+    sub.hidden = false;
+  } else if (which === "s02") {
+    ctx.innerHTML = '<span>' + pantry.length + ' מצרכים · עד ' +
+                    (maxTools === 6 ? "6+" : maxTools) + ' כלים</span>';
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = "שינוי";
+    b.onclick = function(){ go("s01"); };
+    ctx.appendChild(b);
+    head.textContent = queue.length ? "מצאנו לך משהו" : "לא מצאנו משהו";
+    sub.hidden = true;
+  } else {
+    ctx.innerHTML = "";
+    var back = document.createElement("button");
+    back.type = "button"; back.className = "back";
+    back.innerHTML = "→ חזרה לתוצאות";
+    back.onclick = function(){ go("s02"); renderResult(); };
+    ctx.appendChild(back);
+    head.textContent = current ? current.r.title : "";
+    sub.hidden = true;
+  }
+}
+
+/* ========================= S02 ========================= */
+function renderResult(){
+  var box = $("result");
+
+  if (!queue.length || idx >= queue.length) {
+    box.innerHTML =
+      '<div class="empty">' +
+        '<h2>' + (queue.length ? "זהו, עברת על הכל" : "לא מצאנו מתכון שמתאים") + '</h2>' +
+        '<p>' + (queue.length
+          ? "אלה כל המתכונים שמתאימים למה שיש לך ולכמות הכלים שהסכמת לשטוף."
+          : "אפשר להוסיף מצרך אחד, או להסכים לשטוף עוד כלי — ואז נמצא לך משהו.") + '</p>' +
+        '<button class="btn-primary" type="button" id="back01">שינוי המצרכים</button>' +
+      '</div>';
+    $("back01").onclick = function(){ go("s01"); };
+    return;
+  }
+
+  current = queue[idx];
+  var r = current.r, e = current.e;
+  var left = queue.length - idx - 1;
+  var tried = getTried(r.id);
+
+  var fit = e.missing.length === 0
+    ? '<div class="fit fit--all">✓ יש לך את הכל</div>'
+    : '<div class="fit fit--near">חסר לך ' +
+      (e.missing.length === 1 ? "רק פריט אחד" : e.missing.length + " פריטים") + '</div>';
+
+  var haveLine = e.hits.length
+    ? '<p class="have"><span class="mk">✓</span><span>יש לך: ' + e.hits.slice(0,5).join(", ") +
+      (e.hits.length > 5 ? " ועוד " + (e.hits.length-5) : "") + '</span></p>' : "";
+
+  var missLine = e.missing.length
+    ? '<p class="missing"><span class="mk">✕</span><span>חסר: ' + e.missing.join(", ") + '</span></p>' : "";
+
+  var triedLine = tried > 0
+    ? '<p class="tried">נוסה ע״י <b>' + tried + '</b></p>'
+    : '<p class="tried tried--none">אף אחד לא ניסה עדיין — היה הראשון</p>';
+
+  box.innerHTML =
+    '<div class="deck">' +
+      (left >= 1 ? '<div class="under u1"></div>' : "") +
+      (left >= 2 ? '<div class="under u2"></div>' : "") +
+      '<article class="card">' +
+        '<div class="media">' +
+          '<img src="assets/recipes/' + r.id + '.jpg" alt="' + r.title + '" ' +
+               'onerror="this.style.display=\'none\'">' +
+          '<div class="tools-badge"><b>' + e.tools + '</b> ' + (e.tools === 1 ? 'כלי לשטוף' : 'כלים לשטוף') + '</div>' +
+        '</div>' +
+        '<div class="body">' +
+          '<h2>' + r.title + '</h2>' +
+          '<div class="meta"><span>' + r.prepTimeMinutes + ' דק׳</span>' +
+            '<span class="dot">·</span><span>' + r.difficulty + '</span>' +
+            '<span class="dot">·</span><span>' + (r.ingredients.length === 1 ? 'מצרך אחד' : r.ingredients.length + ' מצרכים') + '</span></div>' +
+          fit + haveLine + missLine +
+          '<hr class="rule">' + triedLine +
+        '</div>' +
+      '</article>' +
+    '</div>' +
+    '<div class="actions">' +
+      '<button class="act act--cook" type="button" id="cook" aria-label="בואו נבשל את ' + r.title + '">♥</button>' +
+      '<button class="act act--skip" type="button" id="skip" aria-label="דלג, הראו לי מתכון אחר">✕</button>' +
+    '</div>' +
+    '<p class="more">' + (left > 1 ? "עוד " + left + " מתאימים לך" : left === 1 ? "עוד אחד מתאים לך" : "זה האחרון שמתאים") + '</p>';
+
+  $("cook").onclick = function(){ go("s03"); renderRecipe(); };
+  $("skip").onclick = function(){ idx++; renderResult(); };
+}
+
+/* ========================= S03 ========================= */
+/* ת: השלמה במכולת. מציג עד שני מצרכים בלבד — שלושה ומעלה
+   זו כבר קנייה, וקנייה היא בדיוק המטלה שהאפליקציה באה לחסוך.
+   הקישור הוא חיפוש בשופרסל אונליין, לא סל מוכן: אני לא יודע
+   איזו אריזה הוא רוצה, ולהחליט במקומו זה בדיוק מה שלא עושים כאן. */
+function shufLinks(missing){
+  if (!missing || !missing.length || missing.length > 2) return "";
+  var cart = '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.6h7.2a2 2 0 0 0 2-1.6L20 7H6"/>' +
+    '<circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/></svg>';
+  var links = missing.map(function(m){
+    var name = m.split(" (")[0];
+    return '<a href="https://www.shufersal.co.il/online/he/search?text=' +
+      encodeURIComponent(name) + '" target="_blank" rel="noopener noreferrer">' +
+      cart + '<span>' + name + '</span></a>';
+  }).join("");
+  return '<div class="shuf"><span class="shuf-lbl">או להשלים במכולת:</span>' + links + '</div>';
+}
+
+function renderRecipe(){
+  var r = current.r, e = current.e, pan = pantry.map(norm);
+
+  var ings = r.ingredients.map(function(ing){
+    var name = ing.display || ing.name;
+    var got  = has(pan, ing.name);
+    var tag, cls;
+    if (ing.necessity === "optional")      { tag = "רשות";  cls = "tag--opt"; }
+    else if (ing.necessity === "swappable"){ tag = "תחליף"; cls = "tag--swap"; }
+    else                                   { tag = "חובה";  cls = "tag--req"; }
+
+    var amount = "";
+    if (ing.amount != null) amount = ing.amount + (ing.amountMax ? "–" + ing.amountMax : "") + " ";
+    if (ing.unit) amount += ing.unit + " ";
+
+    return '<li><span class="tag ' + cls + '">' + tag + '</span>' +
+           '<span class="' + (got || ing.necessity === "optional" ? "" : "miss") + '">' +
+           amount + name +
+           (ing.substitute ? '<span class="sub">אפשר במקום: ' + ing.substitute + '</span>' : "") +
+           '</span></li>';
+  }).join("");
+
+  var steps = r.instructions.map(function(s){ return "<li>" + s + "</li>"; }).join("");
+  var tried = getTried(r.id);
+
+  $("recipe").className = "recipe-grid";
+  $("recipe").innerHTML =
+    '<div class="panel recipe p-hero" style="padding:0;overflow:hidden">' +
+      '<div class="hero-img"><img src="assets/recipes/' + r.id + '.jpg" ' +
+        'alt="' + r.title + '" onerror="this.parentNode.style.display=\'none\'"></div>' +
+      '<div style="padding:var(--space-5)">' +
+        '<div class="meta"><span>' + r.prepTimeMinutes + ' דק׳</span>' +
+          '<span class="dot">·</span><span>' + r.difficulty + '</span>' +
+          '<span class="dot">·</span><span>' + (e.tools === 1 ? 'כלי אחד לשטוף' : e.tools + ' כלים לשטוף') + '</span>' +
+          '<span class="dot">·</span><span>' + (r.servings === 1 ? 'מנה אחת' : r.servings + ' מנות') + '</span></div>' +
+        (r.dietary && r.dietary.length ? '<div class="meta">' + r.dietary.join(" · ") + '</div>' : "") +
+      '</div>' +
+    '</div>' +
+
+    '<div class="panel p-ing"><h2>מצרכים</h2><p class="hint">מה שמסומן באדום — חסר לך.</p>' +
+      '<ul class="ing">' + ings + '</ul></div>' +
+
+    '<div class="panel p-steps"><h2>ההכנה</h2><ol class="steps">' + steps + '</ol>' +
+      (r.notes ? '<p class="notes">' + r.notes + '</p>' : "") + '</div>' +
+
+    /* ת16 — S03 היה מבוי סתום: הוא אמר "חסר לך חמאה" ולא הציע כלום,
+       בדיוק ברגע שבו הכוונה הכי גבוהה. זה לא רשימת קניות (שהיא עוד
+       מטלה) אלא "היד המכוונת": מתכון אחר, שלא צריך את מה שאין לך. */
+    (e.missing.length
+      ? (function(){
+          /* השם המלא של מרכיב כולל לא פעם סוגריים ("חמאה (או שמן למרק פרווה)"),
+             ובכפתור זה נשבר לשתי שורות. בכיתוב לוקחים רק את השם עצמו. */
+          var shortName = e.missing[0].split(" (")[0];
+          return '<div class="panel noX" id="noX-panel">' +
+            '<p class="noX-line">חסר לך <b>' + e.missing[0] + '</b>.</p>' +
+            '<button class="btn-ghost" type="button" id="noX">מצא לי מתכון בלי ' + shortName + '</button>' +
+            shufLinks(e.missing) +
+          '</div>';
+        })()
+      : "") +
+
+    '<div class="did" id="did">' +
+      '<button class="btn-primary" type="button" id="good">יצא לי טוב!</button>' +
+      '<p class="did-note">' + (tried > 0
+        ? 'נוסה ע״י ' + tried + ' עד עכשיו'
+        : 'אף אחד לא ניסה עדיין — תהיה הראשון') + '</p>' +
+    '</div>';
+
+  /* ת16 — אם אין שום מתכון בלי המרכיב הזה, לא זורקים את המשתמש
+     למסך ריק: מחזירים את המצב ואומרים לו את זה במקום. */
+  if ($("noX")) {
+    $("noX").onclick = function(){
+      var keepQ = queue, keepI = idx, miss = e.missing[0];
+      excluded = miss;
+      search();
+      if (!queue.length) {
+        excluded = null; queue = keepQ; idx = keepI;
+        go("s03"); renderRecipe();
+        var panel = $("noX-panel");
+        if (panel) panel.innerHTML =
+          '<p class="noX-line">בדקתי — כל מה שמתאים למה שיש לך דורש ' +
+          miss.split(" (")[0] + '. אולי שווה להוסיף מצרך לרשימה, או להעלות את מספר הכלים.</p>';
+      }
+    };
+  }
+
+  /* ה66 — בקרת סימון, לא ניווט. הלחיצה לא מוציאה אותך מהמסך. */
+  $("good").onclick = function(){
+    var n = bumpTried(r.id);
+    $("did").innerHTML = '<div class="did-done">✓ נרשם. המונה של המתכון הזה עומד על ' + n + '.</div>';
+  };
+}
+
+/* ---------- S00: יציאה למסך הראשי ---------- */
+var intro = $("intro");
+if (intro) {
+  var params = new URLSearchParams(location.search);
+  var force  = params.get("intro") === "1";
+  var seen   = false;
+  try { seen = localStorage.getItem("bp-intro-seen") === "1"; } catch (e) {}
+  if (seen && !force) { intro.classList.add("is-out"); }
+
+  $("intro-go").onclick = function () {
+    intro.classList.add("is-out");
+    try { localStorage.setItem("bp-intro-seen", "1"); } catch (e) {}
+    var first = document.getElementById("entry-input");
+    if (first) setTimeout(function () { first.focus(); }, 440);
+  };
+}
+
+/* ========================= התחלה ========================= */
+renderCommon();
+renderMine();
+go("s01");
+
+})();
+</script>
+<script>
+/* רישום ה-Service Worker. בלעדיו האתר לא ניתן להתקנה כאפליקציה. */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js"); });
+}
+</script>
+</body>
+</html>

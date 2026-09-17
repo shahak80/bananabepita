@@ -1,0 +1,256 @@
+/* =========================================================
+   tokens.css · Design Tokens — בננה בפיתה
+   Mobile First | RTL | Hebrew
+   גרסה 2 · 26.8.2026
+   ---------------------------------------------------------
+   הרמוניית הצבעים: אנלוגית רחבה (146° · 81° · 48°)
+   אין ניגוד גוון → עומק מגיע מבהירות, רוויה ומרקם בלבד.
+   פירוט מלא: docs/design.md
+   ========================================================= */
+
+/* --- Adobe Fonts --- */
+@import url("https://use.typekit.net/nlp4rrb.css");
+
+:root {
+
+  /* -------------------------------------------------------
+     TYPOGRAPHY
+  ------------------------------------------------------- */
+  --font-display: "greycliff-hebrew-cf", "Greycliff Hebrew CF", sans-serif;
+  --font-ui:      "avenir-next-world", "Avenir Next World", "Avenir Next", sans-serif;
+
+  /* Scale */
+  --text-xs:   12px;
+  --text-sm:   14px;
+  --text-base: 16px;
+  --text-md:   18px;
+  --text-lg:   22px;
+  --text-xl:   28px;
+  --text-2xl:  36px;
+  --text-3xl:  48px;
+  --text-4xl:  64px;
+
+  /* Weight */
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold:600;
+  --weight-bold:    700;
+  --weight-heavy:   900;
+
+  /* Line height */
+  --leading-tight:  1.15;
+  --leading-snug:   1.35;
+  --leading-normal: 1.6;
+  --leading-loose:  1.8;
+
+  /* -------------------------------------------------------
+     COLORS — Green Scale
+  ------------------------------------------------------- */
+  --green-900: #1A3D2A;   /* טקסט כהה · עוגן */
+  --green-800: #234F37;
+  --green-700: #2A6E47;   /* Primary — הצבע הראשי */
+  --green-600: #3A8A5C;
+  --green-400: #6DB38A;
+  --green-200: #B8DFC8;
+  --green-100: #D8EFE3;
+  --green-50:  #F0FAF4;   /* רקע בהיר */
+
+  /* COLORS — Lime Scale · 30% */
+  --lime-600:  #7AB832;
+  --lime-500:  #B2E05A;   /* Accent — מצב פעיל, תגיות, badge התאמה */
+  --lime-400:  #C8EC7E;
+  --lime-100:  #EEF9D4;
+
+  /* COLORS — Banana Scale · 10% */
+  --banana-600: #D4A800;
+  --banana-300: #DABF6E;  /* שדה הדף — הזהב. 27.8.26 */
+  --banana-200: #C9AA57;  /* קצה / משטח שקוע על הזהב */
+  --banana-150: #E8D9A8;  /* זהב בהיר */
+  --banana-500: #FFD426;  /* CTA ראשי */
+  --banana-400: #FFE066;
+  --banana-100: #FFF8D6;
+
+
+  /* COLORS — Cream Scale · הנייטרל החמים · 60%
+     קרם = בננה (48°) בשיא דעיכת רוויה. עדיין בתוך הקשת האנלוגית.
+     מחזיק את ה-60% במקום הירוק. ראו יומן ההחלטות, שורה 27. */
+  --cream-50:   #FBF7EC;   /* שדה הדף */
+  --cream-100:  #F3EDDD;   /* משטח שקוע */
+  --cream-line: #E8DFC9;   /* קווים מפרידים — לא ירוק על קרם */
+
+  /* COLORS — Neutrals */
+  --white:      #FFFFFF;
+  --gray-50:    #F8F8F6;
+  --gray-100:   #EEEDE9;
+  --gray-300:   #C8C7C2;
+  --gray-500:   #8A8A85;
+  --gray-700:   #4A4A47;
+  --gray-900:   #1C1C1A;
+
+  /* COLORS — Danger (צבע מערכת, לא צבע מותג) */
+  --red-600: #C0392B;
+  --red-100: #FDECEA;
+
+  /* Semantic */
+  --color-danger:        var(--red-600);
+  --color-danger-bg:     var(--red-100);
+  --color-primary:       var(--green-700);
+  --color-primary-dark:  var(--green-900);
+  --color-primary-light: var(--green-50);
+  --color-accent:        var(--lime-500);
+  --color-accent-dark:   var(--lime-600);
+  --color-banana:        var(--banana-500);
+  --color-cta:           var(--banana-500); /* כפתור ראשי — 10% */
+  --color-cta-dark:      var(--banana-600);
+  --color-cta-text:      var(--green-900);  /* WCAG AA ✓ */
+  --color-text:          var(--green-900);
+  --color-text-muted:    #4A6555;   /* תוקן 26.8: #5A7A66 נתן 4.46 ונכשל ב-AA */
+  --color-bg:            var(--banana-150); /* היה banana-300, רוכך 27.8.26 */
+  --color-surface:       var(--white);
+  --color-border:        var(--cream-line);
+
+  /* =======================================================
+     ★ חדש בגרסה 2 — ארבע שכבות העומק
+     בפלטה אנלוגית אין ניגוד גוון. אלה ארבעת הכלים
+     היחידים המותרים לייצור עומק. ראו docs/design.md
+     ======================================================= */
+
+  /* 1 · שכבות בהירות — מהעמוק לרם */
+  --surface-anchor:  var(--green-800);  /* עוגן כהה — הרצועה העליונה. מדרגת בהירות 1
+                                           26.8: הועלה מ-900 ל-800. עדיין 8.74 מול הקרם,
+                                           וכל טקסט על העוגן עובר AA. ראו יומן, שורה 28 */
+  --surface-anchor-max: var(--green-900); /* השמור לרקעים מלאים, לא לרצועה */
+
+  /* --- פעולות המסך הראשי — טוקנים סמנטיים. 28.8.26 --- */
+  --action-cook-bg:     var(--green-700);
+  --action-cook-border: var(--green-900);
+  --action-cook-icon:   var(--white);
+  --action-skip-bg:     var(--color-danger);
+  --action-skip-border: var(--color-danger);
+  --action-skip-icon:   var(--white);
+
+  --surface-deep:    var(--green-700);  /* משטח כהה משני */
+  --surface-sunken:  var(--green-100);  /* מצב ריק — ירוק על קרם, יש ניגוד גוון */
+  --surface-base:    var(--banana-150); /* רקע הדף — זהב רך. היה banana-300, רוכך 27.8.26 */
+  --surface-field-sunken: var(--banana-200);
+  --surface-raised:  var(--white);      /* כרטיסים. מדרגת בהירות 3 */
+
+  /* 2 · מרקם — SVG feTurbulence, בלי קובץ תמונה
+     שימוש: הנחה כשכבת ::after על הרקע, ב-opacity הנתון */
+  --texture-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  --texture-opacity-subtle: 0.030;   /* רקע דף */
+  --texture-opacity-medium: 0.055;   /* משטח כהה */
+  --texture-blend: soft-light;
+
+  /* 3 · צל מגוון — לעולם לא אפור נייטרלי */
+  --shadow-sm:    0 1px 4px  rgba(26, 61, 42, 0.08);
+  --shadow-md:    0 4px 16px rgba(26, 61, 42, 0.12);
+  --shadow-lg:    0 8px 32px rgba(26, 61, 42, 0.18);
+  --shadow-card:  0 2px 8px  rgba(26, 61, 42, 0.06),
+                  0 12px 28px rgba(26, 61, 42, 0.10);
+  --shadow-focus: 0 0 0 3px rgba(178, 224, 90, 0.45);
+
+  /* 4 · שיפוע עדין — בתוך הקשת האנלוגית בלבד */
+  --gradient-surface: linear-gradient(160deg, var(--white) 0%, var(--green-50) 100%);
+  --gradient-anchor:  linear-gradient(160deg, var(--green-800) 0%, var(--green-900) 100%);
+  --gradient-scrim:   linear-gradient(180deg, rgba(26,61,42,0) 0%, rgba(26,61,42,0.72) 100%);
+  /* scrim = לקריאות טקסט על גבי תמונה */
+
+  /* -------------------------------------------------------
+     ★ חדש — כרטיס המתכון (S02)
+  ------------------------------------------------------- */
+  --card-radius:        var(--radius-lg);
+  --card-image-ratio:   4 / 3;    /* יחס תמונת המנה */
+  --card-image-bleed:   full;     /* התמונה נוגעת בקצה העליון — בלי padding */
+  --card-pad:           var(--space-5);
+  --card-max-width:     480px;    /* דסקטופ — הכרטיס לא נמתח */
+
+  /* גדלי כפתורי הפעולה ב-S02 */
+  --action-btn-mobile:  64px;
+  --action-btn-desktop: 56px;
+
+  /* -------------------------------------------------------
+     SPACING (base 4px)
+  ------------------------------------------------------- */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* -------------------------------------------------------
+     BORDER RADIUS
+  ------------------------------------------------------- */
+  --radius-sm:     6px;
+  --radius-md:     12px;
+  --radius-lg:     20px;
+  --radius-xl:     28px;
+  --radius-pill:   100px;
+  --radius-circle: 50%;
+
+  /* -------------------------------------------------------
+     TRANSITIONS
+  ------------------------------------------------------- */
+  --transition-fast:   150ms ease;
+  --transition-normal: 250ms ease;
+
+  /* -------------------------------------------------------
+     LAYOUT
+  ------------------------------------------------------- */
+  --max-width:        480px;
+  --max-width-tablet: 768px;
+  --max-width-desktop:1200px;
+  --navbar-height:    60px;
+  --bottom-bar-height:64px;
+}
+
+/* =========================================================
+   שכבת המרקם — utility אחת, לשימוש חוזר
+   הוסיפו את המחלקה לאלמנט שצריך מרקם.
+   דורש position: relative על האלמנט.
+   ========================================================= */
+.has-grain { position: relative; isolation: isolate; }
+
+.has-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--texture-grain);
+  background-size: 140px 140px;
+  opacity: var(--texture-opacity-subtle);
+  mix-blend-mode: var(--texture-blend);
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+.has-grain--medium::after { opacity: var(--texture-opacity-medium); }
+
+/* נגישות: מי שביקש פחות תנועה — לא מושפע, המרקם סטטי.
+   אבל מי שביקש ניגודיות גבוהה — מורידים את המרקם לגמרי. */
+@media (prefers-contrast: more) {
+  .has-grain::after { opacity: 0; }
+}
+
+/* =========================================================
+   כרטיס תמונה full-bleed — התמונה נוגעת בקצה העליון
+   ========================================================= */
+.card-media--bleed {
+  margin: calc(var(--card-pad) * -1) calc(var(--card-pad) * -1) 0;
+  aspect-ratio: var(--card-image-ratio);
+  overflow: hidden;
+  border-radius: var(--card-radius) var(--card-radius) 0 0;
+}
+
+.card-media--bleed > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
