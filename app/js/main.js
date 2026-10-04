@@ -21,6 +21,16 @@ route("/add/4", renderAdd4);
 
 start();
 
+/* נגישות (שחק 04.10): «דלגו לתוכן» הפנה ל-#screen — הנתב פירש את זה ככתובת מסך שלא קיימת וצייר את המסך מחדש, כך שלא קרה כלום.
+   עכשיו הקישור לא משנה את הכתובת: הוא מעביר את הפוקוס לכותרת הראשית של המסך (אחרי הפס העליון והניווט). */
+document.querySelector(".skip-link")?.addEventListener("click", (ev) => {
+  ev.preventDefault();
+  const target = document.querySelector("#screen h1") || document.getElementById("screen");
+  if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
+  target.focus();
+  target.scrollIntoView({ block: "start" });
+});
+
 /* PWA — רישום ה־Service Worker (רק ב־https או localhost) */
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
