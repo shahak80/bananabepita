@@ -5,6 +5,9 @@ import { $, announce } from "./dom.js";
 
 const routes = [];
 let current = null;
+/* נגישות (שחק 04.10, אפשרות ב׳): בפתיחה הראשונה הפוקוס לא זז — ה-Tab הראשון מגיע ל«דלגו לתוכן».
+   במעבר בין מסכים הפוקוס עובר לכותרת, כמו קודם. */
+let firstLoad = true;
 
 export function route(path, render, opts = {}) {
   const keys = [];
@@ -44,8 +47,9 @@ async function dispatch() {
 
   if (!match.opts.keepScroll) window.scrollTo(0, 0);
   const heading = el.querySelector("h1");
-  if (heading) { heading.setAttribute("tabindex", "-1"); heading.focus({ preventScroll: true }); }
-  else screen.focus({ preventScroll: true });
+  if (heading) heading.setAttribute("tabindex", "-1");
+  if (!firstLoad) { if (heading) heading.focus({ preventScroll: true }); else screen.focus({ preventScroll: true }); }
+  firstLoad = false;
   if (el.dataset.title) { document.title = el.dataset.title + " · בננה בפיתה"; announce(el.dataset.title); }
   current = path;
 }
