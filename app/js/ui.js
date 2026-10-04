@@ -19,7 +19,7 @@ export const ICONS = {
 export const icon = (name, attrs = {}) => svg(ICONS[name], { width: 24, height: 24, ...attrs });
 
 /* header / screen — פס ירוק + כותרת. אופציונלי: חזרה, סגירה, פלוס, לוגו. */
-export function header({ title, logo = true, backTo, closeTo, plusTo, meta, context, cls = "", titleTag = "h1" } = {}) {
+export function header({ title, spoken, logo = true, backTo, closeTo, plusTo, meta, context, cls = "", titleTag = "h1" } = {}) {
   /* nav / top — דסקטופ בלבד (header / screen · דסקטופ בפיגמא): המתכונים שלי · + הוספת מתכון; הלוגו = בית. במובייל מוסתר (יש פס תחתון). */
   const at = (location.hash.replace(/^#/, "") || "/").split("?")[0];
   const link = (href, label, on) => h("a", { class: "top-nav__link", href: "#" + href, "aria-current": on ? "page" : null }, label);
@@ -34,7 +34,9 @@ export function header({ title, logo = true, backTo, closeTo, plusTo, meta, cont
     context && h("div", { class: "context-row" },
       h("a", { class: "context-row__change", href: context.change }, "שינוי"),
       h("span", { class: "context-row__meta ui-meta" }, context.meta)),
-    h(titleTag, { class: "anchor-bar__title display-h2", "aria-hidden": titleTag === "h1" ? null : "true" }, title),
+    h(titleTag, { class: "anchor-bar__title display-h2", "aria-hidden": titleTag === "h1" ? null : "true" },
+      /* spoken: מה שקורא המסך אומר, כשהטקסט על המסך כתוב בשפה מדוברת (למשל «יש׳ך») */
+      spoken ? [h("span", { "aria-hidden": "true" }, title), h("span", { class: "visually-hidden" }, spoken)] : title),
     meta && h("p", { class: "anchor-bar__meta ui-meta" }, meta),
     backTo !== undefined && h("button", { class: "anchor-bar__btn anchor-bar__btn--back", type: "button", "aria-label": "חזרה", onClick: () => back(backTo) }, icon("back")),
     closeTo && h("a", { class: "anchor-bar__btn anchor-bar__btn--close", href: "#" + closeTo, "aria-label": "סגירה" }, icon("close")),

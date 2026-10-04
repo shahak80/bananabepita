@@ -51,8 +51,8 @@ export function card(r, e, nextUp, { onOpen, onSkip }) {
         ...nextUp.map((n) => h("span", { class: "card__thumb", style: photo(n) ? { backgroundImage: `url("${photo(n)}")` } : null }))),
       /* דסקטופ (card / recipe · דסקטופ): הכפתורים בתוך הכרטיס — «למתכון» + «לא טוב לי». במובייל מוסתרים (יש ✕/♥ מתחת). */
       h("div", { class: "card__actions" },
-        h("button", { class: "card-btn card-btn--open", type: "button", onClick: (ev) => { ev.stopPropagation(); onOpen(); } }, icon("heart"), "למתכון"),
-        onSkip && h("button", { class: "card-btn card-btn--skip", type: "button", onClick: (ev) => { ev.stopPropagation(); onSkip(); } }, icon("thumbsDown"), "לא טוב לי")),
+        h("button", { class: "card-btn card-btn--open", type: "button", "aria-label": `למתכון: ${r.title}`, onClick: (ev) => { ev.stopPropagation(); onOpen(); } }, icon("heart"), "למתכון"),
+        onSkip && h("button", { class: "card-btn card-btn--skip", type: "button", "aria-label": `לא טוב לי: ${r.title}`, onClick: (ev) => { ev.stopPropagation(); onSkip(); } }, icon("thumbsDown"), "לא טוב לי")),
     ),
   );
   el.addEventListener("click", onOpen);
@@ -246,18 +246,25 @@ function buildResults(recipes, s, meta) {
 
   function paint(pop = true) {
     const rest = queue.length - cardIndex;
+    /* נגישות (05.10): «לא טוב לי» מחליף את הכרטיס — הפוקוס היה נופל לראש הדף. זוכרים על איזה כפתור הוא היה ומחזירים לאותו כפתור בכרטיס החדש */
+    const focusedBtn = stack.contains(document.activeElement) ? [...document.activeElement.classList].find((k) => k.startsWith("card-btn--")) : null;
     stack.replaceChildren();
     if (rest <= 0) {
       if (!queue.length) { stack.parentElement?.classList.add("results__stage--empty"); stack.replaceWith(emptyState(scenario(recipes, s))); more.textContent = ""; skipBtn.hidden = cookBtn.hidden = true; return; }
       stack.append(h("div", { class: "results__end" },
-        h("h2", { class: "display-h2" }, "זהו, עברת על הכול"),
+        h("h2", { class: "display-h2", tabindex: "-1" }, "זהו, עברת על הכול"),
         h("p", { class: "ui-body" }, "אפשר לחזור לכרטיס הראשון, או לשנות את המצרכים."),
         h("button", { class: "btn-primary", type: "button", onClick: () => { cardIndex = 0; paint(); } }, "מההתחלה"),
         h("a", { class: "btn-primary", href: "#/" }, "שינוי המצרכים")));
-      more.textContent = ""; skipBtn.hidden = cookBtn.hidden = true; return;
+      more.textContent = ""; skipBtn.hidden = cookBtn.hidden = true;
+      if (focusedBtn) stack.querySelector(".results__end h2")?.focus();
+      return;
     }
     skipBtn.hidden = cookBtn.hidden = false;
     const cur = queue[cardIndex];
+    /* נגישות (05.10, בדיקת NVDA): ב-Tab שומעים רק את הכפתורים — בלי שם המתכון לא ברור על מה מדובר */
+    cookBtn.setAttribute("aria-label", `פתיחת המתכון: ${cur.r.title}`);
+    skipBtn.setAttribute("aria-label", `דילוג על ${cur.r.title} — משהו אחר`);
     const e = evaluate(cur.r, pantry);
     const nextUp = queue.slice(cardIndex + 1, cardIndex + 5).map((x) => x.r);
     const c = card(cur.r, e, nextUp, { onOpen: () => open(cur.r.id), onSkip: () => fly(-1) });
@@ -268,12 +275,13 @@ function buildResults(recipes, s, meta) {
       stack.append(h("div", { class: "ghost ghost--1", "aria-hidden": "true" }));
       const nx = queue[cardIndex + 1];
       const behind = card(nx.r, evaluate(nx.r, pantry), queue.slice(cardIndex + 2, cardIndex + 6).map((x) => x.r), { onOpen: () => {} });
-      behind.classList.add("card--behind"); behind.setAttribute("aria-hidden", "true"); behind.removeAttribute("tabindex"); behind.removeAttribute("role");
+      behind.classList.add("card--behind"); behind.setAttribute("aria-hidden", "true"); behind.removeAttribute("tabindex"); behind.removeAttribute("role"); behind.inert = true;   /* הכרטיס שמאחור — לא נגיש ב-Tab */
       stack.append(behind);
       requestAnimationFrame(() => { const cur = stack.querySelector(".card:not(.card--behind)"); if (cur) behind.style.height = cur.offsetHeight + "px"; });   /* באותו גובה, כדי שהשוליים התחתונים ייראו */
     }
     stack.append(c);
     if (pop && !reducedMotion()) c.classList.add("card--pop");
+    if (focusedBtn) c.querySelector("." + focusedBtn)?.focus({ preventScroll: true });
     more.textContent = rest - 1 === 0 ? "זה האחרון שמצאנו" : rest - 1 === 1 ? "עוד מתכון אחד מתאים לך" : `עוד ${rest - 1} מתכונים מתאימים לך`;
   }
 

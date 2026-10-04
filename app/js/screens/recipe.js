@@ -45,9 +45,11 @@ export async function renderRecipe({ id }) {
   const tools = r.toolsList || [];
   const toolsCount = r.tools ?? toolsFor(r);
   /* ביקורת #1 (30.09) — הכלים מלווים את המתכון: chip / tool = אייקון 16 + שם, כמו בפיגמא */
-  const toolChips = (list) => list.map((t) => h("span", { class: "toolchip" }, h("span", {}, t), toolIcon(t, 16)));
-  const toolRow = (label, list) => h("div", { class: "toolrow" }, h("span", { class: "toolrow__label" }, label), ...toolChips(list));
-  const washRow = h("div", { class: "toolrow toolrow--wash", hidden: true }, h("span", { class: "toolrow__label" }, "בסוף נשאר לשטוף:"), ...toolChips(tools));
+  /* נגישות (05.10, בדיקת NVDA): הכלים הוקראו צמודים — «מוציאים מראש:מחבתקרשכף עץ». מוסיפים פסיקים ורווח שרק קורא המסך שומע */
+  const sr = (t) => h("span", { class: "visually-hidden" }, t);
+  const toolChips = (list) => list.map((t, i) => h("span", { class: "toolchip" }, h("span", {}, t, i < list.length - 1 ? sr(", ") : sr(".")), toolIcon(t, 16)));
+  const toolRow = (label, list) => h("div", { class: "toolrow" }, h("span", { class: "toolrow__label" }, label, sr(" ")), ...toolChips(list));
+  const washRow = h("div", { class: "toolrow toolrow--wash", hidden: true }, h("span", { class: "toolrow__label" }, "בסוף נשאר לשטוף:", sr(" ")), ...toolChips(tools));
   const base = r.servings || 4;
   let servings = base;
 
@@ -83,7 +85,8 @@ export async function renderRecipe({ id }) {
   });
 
   /* ---------- מנות + מצרכים (מקובצים) ---------- */
-  const servingsVal = h("b", { "aria-live": "polite" });
+  /* נגישות (05.10): ב-Tab NVDA אמר רק «פחות מנות / יותר מנות» — בלי כמה מנות יש עכשיו. הכפתורים מתוארים ע״י המספר */
+  const servingsVal = h("b", { "aria-live": "polite", id: "servings-val" });
   const ingPanel = h("div", { class: "panel ing-panel" });
   let optOpen = false;
   function paintIngredients() {
@@ -219,9 +222,9 @@ export async function renderRecipe({ id }) {
       h("div", { class: "metarow", role: "group", "aria-label": "פרטי המתכון" },
         h("span", { class: "metarow__item" }, timeLabel(r.prepTimeMinutes) || "—"),
         h("span", { class: "metarow__item metarow__servings", role: "group", "aria-label": "כמה מנות?" },
-          h("button", { class: "metarow__step", type: "button", "aria-label": "פחות מנות", onClick: () => stepServings(-1) }, "−"),
+          h("button", { class: "metarow__step", type: "button", "aria-label": "פחות מנות", "aria-describedby": "servings-val", onClick: () => stepServings(-1) }, "−"),
           servingsVal,
-          h("button", { class: "metarow__step", type: "button", "aria-label": "יותר מנות", onClick: () => stepServings(1) }, "+"))),
+          h("button", { class: "metarow__step", type: "button", "aria-label": "יותר מנות", "aria-describedby": "servings-val", onClick: () => stepServings(1) }, "+"))),
       /* «מה צריך» — הכלים. הקונספט שמבדל אותנו: קוביות, בולט, כלים בלבד. */
       h("h2", { class: "recipe__h2 ui-body-strong" }, toolsCount === 1 ? "מה צריך · כלי אחד לשטוף" : `מה צריך · ${toolsCount} כלים לשטוף`),
       h("div", { class: "toolgrid", "aria-label": "כלים" }, ...tools.map((t) => h("div", { class: "toolgrid__item" }, toolIcon(t, 28), h("span", {}, t)))),
