@@ -111,34 +111,28 @@ export async function renderHome() {
     restoreFocus(spot);
   }
 
-  let pantrySec, commonSec, timeSec;
   const el = h("div", { dataset: { screen: "home", title: "אז מה יש לך בבית?" }   /* שם הלשונית — גם אותו NVDA מקריא (שחק 05.10) */ },
     header({ title: "אז מה יש׳ך בבית?", spoken: "אז מה יש לך בבית?" }),   /* שחק 05.10: קורא המסך אומר «יש לך», על המסך נשאר «יש׳ך» */
     h("div", { class: "home__content" },
       form,
-      pantrySec = h("section", { class: "pantry", "aria-labelledby": "pantry-title" },
+      h("section", { class: "pantry", "aria-labelledby": "pantry-title" },
         h("h2", { class: "pantry__title", id: "pantry-title" }, "המצרכים שלי"), pantryEmpty, pantryChips),
-      commonSec = h("section", { class: "section section--common", "aria-labelledby": "common-title" },
-        h("h2", { class: "section__title", id: "common-title" }, "מצרכים נפוצים"), commonChips),
       /* ביקורת #11 (30.09): הכלים — הקונספט המבדל — מעל הזמן ובולטים ממנו (משטח green/50, מסגרת green/200) */
+      /* שחק 05.10: במובייל המסננים ראשונים — אחרי הוספת מצרכים הם «נבלעו» בתחתית ודרשו גלילה. המצרכים הנפוצים בסוף.
+         זה גם הסדר בדסקטופ (שם המיקום נקבע ב-grid), אז סדר ה-Tab תואם למראה בשניהם */
       h("section", { class: "section section--tools home__tools" }, h("h2", { class: "section__title" }, "כמה כלים מוכן לשטוף?"), toolsWrap),
-      timeSec = h("section", { class: "section home__time" }, h("h2", { class: "section__title" }, "כמה זמן יש לך?"), timeWrap),
+      h("section", { class: "section home__time" }, h("h2", { class: "section__title" }, "כמה זמן יש לך?"), timeWrap),
+      h("section", { class: "section section--common", "aria-labelledby": "common-title" },
+        h("h2", { class: "section__title", id: "common-title" }, "מצרכים נפוצים"), commonChips),
     ),
     h("div", { class: "sticky-bar" }, counter, findBtn),
     bottomNav("home"),
   );
 
-  /* נגישות (שחק 05.10, אפשרות ב׳): בדסקטופ «מצרכים נפוצים» מוצגים מתחת לכלים ולזמן, ובמובייל מעליהם.
-     סדר ה-Tab וההקראה הולכים לפי סדר הקוד — לכן בדסקטופ מעבירים את המקטע אחרי «כמה זמן», והמראה לא משתנה (המיקום נקבע ב-grid). */
-  const desk = matchMedia("(min-width: 1024px)");
-  const order = () => { if (desk.matches) timeSec.after(commonSec); else pantrySec.after(commonSec); };
-  order();
-  desk.addEventListener("change", order);
-
   paint();
   unsub = subscribe(paint);
   /* כשהמסך מוחלף — מפסיקים להאזין */
-  const obs = new MutationObserver(() => { if (!document.contains(el)) { unsub(); desk.removeEventListener("change", order); obs.disconnect(); } });
+  const obs = new MutationObserver(() => { if (!document.contains(el)) { unsub(); obs.disconnect(); } });
   obs.observe(document.getElementById("screen"), { childList: true });
   return el;
 }

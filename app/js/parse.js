@@ -1,3 +1,5 @@
+import { entryOf, findIngredients } from "./lexicon.js";
+
 /* המפרק המקומי — טקסט חופשי → מצרכים + שלבים.
    כללים, לא ניחוש. כשיהיה חיבור ל־Gemini (דרך המתווך) — הוא יחליף את זה, וזה נשאר כגיבוי אופליין. */
 
@@ -14,7 +16,7 @@ export function isBasic(name) {
   return BASIC.some((b) => b.includes(" ") ? name.includes(b) : words.some((w) => w === b || (b.length >= 4 && w.startsWith(b)) || (w.length >= 4 && b.startsWith(w) && b.length - w.length <= 2)));
 }
 
-function parseAmount(line) {
+export function parseAmount(line) {
   let s = line.trim().replace(/^[-•*·]\s*/, "");
   let amount = null, amountMax = null, unit = null;
   const m = s.match(/^(~|כ-?|בערך\s)?\s*(\d+(?:[.,]\d+)?|[½¼¾⅓⅔])(?:\s*[-–]\s*(\d+(?:[.,]\d+)?))?\s*([½¼¾⅓⅔])?\s*/);
@@ -38,6 +40,9 @@ function isIngredientLine(line) {
   if (new RegExp("^(" + UNITS.join("|") + ")\\s").test(t)) return true;
   if (VERBS.test(t)) return false;
   const words = t.split(/\s+/);
+  /* «שמים שתי פרוסות לחם», «לוקחים…», «מוציאים לצלחת» — פועל בגוף רבים בתחילת השורה = שלב (שחק 05.10).
+     אבל «פלפלים אדומים», «זיתים ירוקים» — מצרך: המילה הראשונה מוכרת כמצרך */
+  if (words.length >= 2 && /^[א-ת]{2,}ים$/.test(words[0]) && !isBasic(words[0]) && !entryOf(words[0])) return false;
   if (words.length > 2 && PLURAL_VERB.test(t)) return false;
   if (/ או /.test(t) && words.length <= 8 && !/[.!?]$/.test(t)) return true;   /* «שום כתוש או אבקת שום» — חלופה, לא שלב */
   return words.length <= 4 && !/[.!?]$/.test(t);
@@ -79,6 +84,18 @@ export function parseRecipe(text) {
   if (ingredients.length < 2 && lines.length <= 2) {
     const parts = lines.join(" ").split(/[,،]\s*/).map((p) => p.trim()).filter((p) => p && p.length <= 40);
     if (parts.length >= 3) { ingredients.length = 0; steps.length = 0; parts.forEach(addIng); }
+  }
+  /* אין רשימת מצרכים — המתכון כתוב כפסקה. מחפשים את המצרכים בתוך השלבים, מול המאגר */
+  if (ingredients.length < 2) {
+    const found = findIngredients(steps.join("\n"));
+    if (found.length >= 2) {
+      ingredients.length = 0;
+      for (const f of found) {
+        const a = parseAmount(f.phrase);   /* «שתי פרוסות לחם» → 2 פרוסות */
+        const ok = a.amount != null && entryOf(a.name) === f.entry;
+        ingredients.push({ name: f.entry.name, amount: ok ? a.amount : null, amountMax: ok ? a.amountMax : null, unit: ok ? a.unit : null, necessity: f.optional ? "optional" : "required" });
+      }
+    }
   }
   return { title, ingredients, steps, ok: ingredients.length >= 2 };
 }

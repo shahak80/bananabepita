@@ -6,6 +6,7 @@ import { addPending } from "../store.js";
 import { navigate, back } from "../router.js";
 import { parseRecipe, formatAmount, isBasic, understandSteps, toolsList, ALL_TOOLS } from "../parse.js";
 import { toolIcon } from "../icons.js";
+import { loadLexicon } from "../lexicon.js";
 
 /* הטיוטה — חיה בין המסכים, נמחקת אחרי שליחה */
 let draft = null;
@@ -43,6 +44,7 @@ function side(done) {
 /* --- 1 · שתי דלתות --- */
 export function renderAdd1() {
   if (!draft) draft = newDraft();
+  loadLexicon();   /* המאגר נדרש כדי למצוא מצרכים במתכון שנכתב כפסקה (05.10) */
   const ta = h("textarea", { class: "paste-box__input", placeholder: "כתבו את המתכון כאן!", "aria-label": "כתבו את המתכון כאן", rows: 14 });
   ta.value = draft.text;
   const cta = stickyCta("המשך", { onClick: () => { draft.text = ta.value; const p = parseRecipe(draft.text); const u = understandSteps(p.steps);

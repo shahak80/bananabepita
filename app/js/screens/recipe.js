@@ -161,7 +161,10 @@ export async function renderRecipe({ id }) {
 
   function go(to, dir) {
     if (to < 0 || to >= cards.length) return;
-    const old = stage.firstElementChild; idx = to;
+    /* שחק 05.10: במעבר מהיר נשארו שני שלבים זה על זה — «הישן» נלקח מהכרטיס שעוד יצא, והכרטיס הנוכחי לא סומן ליציאה.
+       עכשיו: כרטיסים שעוד יוצאים — נמחקים מיד; «הישן» = הכרטיס שמוצג עכשיו */
+    stage.querySelectorAll(".is-leaving").forEach((n) => n.remove());
+    const old = stage.lastElementChild; idx = to;
     const el = cardEl(cards[idx]);
     if (old && !reducedMotion()) {
       old.classList.add("is-leaving"); el.classList.add(dir > 0 ? "in-next" : "in-prev"); stage.append(el);

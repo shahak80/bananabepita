@@ -64,7 +64,10 @@ export function renderIntro() {
         h("p", { class: "intro__lead ui-body-lg" }, "בלי קניות, בלי תכנון.", h("br"), "רק מה שכבר יש לך במטבח."),
         h("div", { class: "intro__cta" },
           h("button", { class: "btn-primary btn-primary--hero", type: "button", onClick: go }, "קדימה!")),
-        h("a", { class: "btn-store only-desk-block", ...(PLAY_URL ? { href: PLAY_URL, target: "_blank", rel: "noopener" } : { "aria-disabled": "true" }) }, "להורדה ב-Google Play"),
+        /* נגישות #18 (שחק 05.10, ב׳): כל עוד אין קישור — לא «כפתור» מת, אלא כיתוב שאומר שזה עוד לא זמין */
+        PLAY_URL
+          ? h("a", { class: "btn-store only-desk-block", href: PLAY_URL, target: "_blank", rel: "noopener" }, "להורדה ב-Google Play")
+          : h("span", { class: "btn-store btn-store--soon only-desk-block" }, "בקרוב ב-Google Play"),
         phone())),
     h("section", { class: "intro__steps only-desk-block", "aria-labelledby": "intro-steps-title" },
       h("p", { class: "ui-meta intro__steps-meta" }, "שלוש דקות מהמקרר להחלטה!"),

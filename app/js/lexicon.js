@@ -39,3 +39,32 @@ export function suggest(q, exclude = [], max = 6) {
     .sort((a, b) => a.s - b.s || a.name.length - b.name.length)
     .slice(0, max).map((x) => x.name);
 }
+
+/* מצרכים בתוך טקסט חופשי (שחק 05.10: «טוסט גבינה» נכתב כפסקה — בלי רשימת מצרכים).
+   סורקים צירופים של 3, 2 ומילה אחת מול המאגר (שם + כינויים). מקדימות ו/ה/ב/ל בלבד — לא ש/מ («שמים» ≠ מים).
+   «מי שרוצה / אפשר להוסיף / לשדרג / אם יש» במשפט → המצרכים שאחריו במשפט הזה = לא חובה. */
+const OPTIONAL_CUE = /(מי שרוצה|אפשר להוסיף|אפשר גם|לשדרג|אם יש|לא חובה|לבחירה|רשות)/;
+export function findIngredients(text) {
+  if (!list) return [];
+  const byName = new Map();
+  for (const i of list) for (const a of [i.name, ...i.aliases]) byName.set(norm(a), i);
+  const found = [];
+  for (const sentence of String(text || "").split(/[.!?\n]+/)) {
+    const words = norm(sentence).split(" ").filter(Boolean);
+    const cueAt = (() => { const m = sentence.match(OPTIONAL_CUE); return m ? norm(sentence.slice(0, m.index)).split(" ").filter(Boolean).length : Infinity; })();
+    for (let i = 0; i < words.length; i++) {
+      let hit = null, len = 0;
+      for (const n of [3, 2, 1]) {
+        if (i + n > words.length) continue;
+        const phrase = words.slice(i, i + n).join(" ");
+        const stripped = /^[והבל][א-ת]{3,}/.test(phrase) ? phrase.slice(1) : null;
+        hit = byName.get(phrase) || (stripped && byName.get(stripped));
+        if (hit) { len = n; break; }
+      }
+      if (!hit) continue;
+      if (!found.some((f) => f.entry === hit)) found.push({ entry: hit, phrase: words.slice(Math.max(0, i - 1), i + len).join(" "), optional: i >= cueAt });
+      i += len - 1;
+    }
+  }
+  return found;
+}
